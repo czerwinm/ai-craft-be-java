@@ -5,9 +5,15 @@ import devices.configuration.installations.InstallationService;
 import devices.configuration.tools.AuthFixture;
 import devices.configuration.tools.KafkaFixture;
 import devices.configuration.tools.RequestsFixture;
+import devices.configuration.tools.RestTemplateFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.web.client.MockRestServiceServer;
+
+import static org.springframework.http.HttpMethod.PUT;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 @IntegrationTest(profiles = {"auth-test", "kafka-test", "integration-test"})
 class E2EScenariosTest {
@@ -20,12 +26,18 @@ class E2EScenariosTest {
     InstallationService service;
     @Autowired
     KafkaFixture kafka;
+    @Autowired
+    RestTemplateFixture rest;
+    private MockRestServiceServer installations2DeviceClient;
 
     final String orderId = DeviceFixture.randomId();
     final String deviceId = DeviceFixture.randomId();
 
     @BeforeEach
     void setUp() {
+        installations2DeviceClient = rest.getRestTemplate("devicesClient", "rest")
+                .overrideToLocalServer()
+                .interceptToMockRestServiceServer();
         requests.withJwt(auth.tokenFor("john", "john"));
     }
 
@@ -106,7 +118,31 @@ class E2EScenariosTest {
                   "defSeconds": 1800
                 }
                 """, deviceId);
-        ;
+
+        installations2DeviceClient.expect(requestTo(STR."http://devices-service.cpo-namespace/devices/\{deviceId}"))
+                .andExpect(method(PUT))
+                .andExpect(content().json("""
+                        {
+                          "ownership": {
+                            "operator": "Devicex.nl",
+                            "provider": "public-devices"
+                          },
+                          "location": {
+                            "street": "Rakietowa",
+                            "houseNumber": "1A",
+                            "city": "Wrocław",
+                            "postalCode": "54-621",
+                            "state": null,
+                            "country": "POL",
+                            "coordinates": {
+                              "longitude": 51.09836221719513,
+                              "latitude": 16.931752852309156
+                            }
+                          }
+                        }
+                        """))
+                .andRespond(withSuccess());
+
         requests.installations.patch(orderId, """
                         { "complete": true }""")
                 .isExactlyLike("""
