@@ -33,7 +33,7 @@ public class RequestsFixture {
     @PostConstruct
     void setUp() {
         this.client = WebClient.builder()
-                .baseUrl(STR."http://localhost:\{port}")
+                .baseUrl("http://localhost:" + port)
                 .clientConnector(new ReactorClientHttpConnector(
                         HttpClient.create().wiretap(this.getClass().getCanonicalName(), LogLevel.INFO, AdvancedByteBufFormat.TEXTUAL)
                 ))
@@ -52,7 +52,7 @@ public class RequestsFixture {
         public JsonAssert get(int page, int size) {
             return JsonAssert.assertThat(client.get()
                     .uri("/installations?page={page}&size={size}", page, size)
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve().bodyToMono(String.class).block());
         }
@@ -60,7 +60,7 @@ public class RequestsFixture {
         public JsonAssert get(String orderId1) {
             return JsonAssert.assertThat(client.get()
                     .uri("/installations/{orderId}", orderId1)
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve().bodyToMono(String.class).block());
         }
@@ -68,7 +68,7 @@ public class RequestsFixture {
         public JsonAssert patch(String orderId, @Language("JSON") String body, Object... bodyParams) {
             return JsonAssert.assertThat(client.patch()
                     .uri("/installations/{orderId}", orderId)
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .body(BodyInserters.fromValue(body.formatted(bodyParams)))
@@ -80,7 +80,7 @@ public class RequestsFixture {
         public JsonAssert get(int page, int size) {
             return JsonAssert.assertThat(client.get()
                     .uri("/devices?page={page}&size={size}", page, size)
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve().bodyToMono(String.class).block());
         }
@@ -88,7 +88,7 @@ public class RequestsFixture {
         public JsonAssert get(String orderId) {
             return JsonAssert.assertThat(client.get()
                     .uri("/devices/{orderId}", orderId)
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve().bodyToMono(String.class).block());
         }
@@ -96,7 +96,7 @@ public class RequestsFixture {
         public JsonAssert patch(String deviceId, @Language("JSON") String body, Object... bodyParams) {
             return JsonAssert.assertThat(client.patch()
                     .uri("/devices/{deviceId}", deviceId)
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .body(BodyInserters.fromValue(body.formatted(bodyParams)))
@@ -130,7 +130,7 @@ public class RequestsFixture {
         public JsonAssert get() {
             return JsonAssert.assertThat(client.get()
                     .uri("/configs/IntervalRules")
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve().bodyToMono(String.class).block());
         }
@@ -138,7 +138,7 @@ public class RequestsFixture {
         public JsonAssert put(@Language("JSON") String body, Object... bodyParams) {
             return JsonAssert.assertThat(client.put()
                     .uri("/configs/IntervalRules")
-                    .header(HttpHeaders.AUTHORIZATION, STR."Bearer \{jwt}")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .body(BodyInserters.fromValue(body.formatted(bodyParams)))

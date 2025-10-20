@@ -65,18 +65,18 @@ public class JsonConfiguration implements ObjectMapperSupplier {
     private void initEventTypes() {
         DeserializationConfig config = OBJECT_MAPPER.getDeserializationConfig();
         AnnotationIntrospector ai = config.getAnnotationIntrospector();
-        Map<Class<?>, EventTypes.Type> subtypes = Stream.of(
-                        devices.configuration.device.DomainEvent.class,
-                        devices.configuration.installations.DomainEvent.class
-                )
-                .map(type -> AnnotatedClassResolver.resolve(config, OBJECT_MAPPER.constructType(type), config))
-                .map(ai::findSubtypes)
-                .flatMap(Collection::stream)
-                .collect(Collectors.toMap(
-                        NamedType::getType,
-                        type -> EventTypes.Type.of(type.getName())
-                ));
-        EventTypes.init(subtypes);
+        // Map<Class<?>, EventTypes.Type> subtypes = Stream.of(
+        //                 devices.configuration.device.DomainEvent.class,
+        //                 devices.configuration.installations.DomainEvent.class
+        //         )
+        //         .map(type -> AnnotatedClassResolver.resolve(config, OBJECT_MAPPER.constructType(type), config))
+        //         .map(ai::findSubtypes)
+        //         .flatMap(Collection::stream)
+        //         .collect(Collectors.toMap(
+        //                 NamedType::getType,
+        //                 type -> EventTypes.Type.of(type.getName())
+        //         ));
+        // EventTypes.init(subtypes);
     }
 
     public static <T> T parse(String json, Class<T> type) {
