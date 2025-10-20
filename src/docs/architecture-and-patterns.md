@@ -1,28 +1,51 @@
 # Instructions for implementing Business Modules with Domain-Driven Design and Ports and Adapters
 
+## Overview
+
+This document provides comprehensive instructions for implementing business modules in Java Spring Boot applications using Domain-Driven Design (DDD) and Ports and Adapters (Hexagonal Architecture) patterns. Follow these guidelines to ensure consistent, maintainable, and testable code.
+
+### Key Principles
+
+1. **Domain Independence**: Domain logic must be independent of infrastructure concerns
+2. **Aggregate Encapsulation**: Aggregates control access to their internal state and enforce business rules
+3. **Ports and Adapters**: Use interfaces (ports) to define contracts between domain and infrastructure
+4. **Immutability**: Prefer immutable value objects (Java records) over mutable entities
+5. **Event-Driven**: Emit domain events to communicate state changes
+6. **Package-Private by Default**: Expose only what's necessary; keep implementation details hidden
+
+### Document Structure
+
+- **Domain-Driven Design Patterns**: Aggregates, Value Objects, Domain Events
+- **Ports and Adapters Architecture**: Primary/Secondary Ports, Adapters for HTTP, Persistence, External Systems
+- **Persistence**: JPA with JSONB, Liquibase for schema management, Optimistic Locking
+- **Testing**: Unit, Integration, and End-to-End testing strategies
+- **Spring Boot Integration**: Dependency Injection, Configuration, Pagination
+- **Cross-Cutting Concerns**: Logging, Exception Handling
+
 ## Example Structure of a Module with Domain-Driven Design, Ports and Adapters, and Tests
 
 ```
-src/
-  {feature-name}/
-    {feature.name}.controller.ts # HTTP adapter implementations
-    {feature.name}.service.ts  # Primary port implementations, facade for module functionality
-    {aggregate.name}.ts # Aggregate implementation
-    {feature.name}.model.ts # Immutable value objects
-    {feature.name}.events.ts  # Immutable domain events
-    {feature.name}.repository.ts # Port and provider export and private adapter implementation for persistence
-    {external.system.adapter}.ts # Port and provider export and private adapter implementation for external system
-    {feature.name}.module.ts # NextJS module
+src/main/java/
+  {domain}/
+    {module}/
+        {Feature}Controller.java # HTTP adapter implementations
+        {Feature}Service.java  # Primary port implementations, facade for module functionality
+        {Aggregate}.java # Aggregate implementation (package-private)
+        {ValueObject}.java # Immutable value objects (records)
+        DomainEvent.java  # Domain events (sealed interface or records)
+        {Feature}Repository.java # Repository port (interface)
+        {Feature}DocumentRepository.java # JPA repository adapter implementation
+        {ExternalSystem}Adapter.java # Adapter implementation for external system
 
-test/
-  {feature-name}/
-    {feature.name}.fixtures.ts # Implementation of helper functions preparing example data used in module tests
-    {aggregate.name}.spec.ts # Unit test implementation for aggregate
-    {feature.name}.model.ts # Implementation of value object logic
-    {feature.name}.repository.ts # Integration test implementation for adapter using testcontainers
-    {external.system.adapter}.ts # Adapter test implementation using fake external system API
-    {feature.name}.e2e-spec.ts # End-to-end test implementations
-    {feature.name}.api.http # Http client file allowing manual testing / experimenting with module API
+src/test/java/
+  {domain}/
+    {module}/
+        {Aggregate}Test.java # Unit test implementation for aggregate
+        {ValueObject}Test.java # Unit test implementation for value objects
+        {Feature}ServiceTest.java # Service layer unit tests
+        {Feature}RepositoryTest.java # Integration test using testcontainers
+        {Feature}ControllerTest.java # End-to-end test implementations
+        {feature.name}.http # Http client file for manual testing
 ```
 
 ## Domain-Driven Design - Key Patterns
@@ -36,66 +59,85 @@ An aggregate is a collection of objects treated as a whole, with an ID and mutab
 **How to implement:**
 
 - in aggregate name and file, do not use aggregate suffix, use clean name
-- prefer value objects from {feature.name}.model.ts as fields
-- if a field should be a mutable object, define it in the aggregate file {aggregate.name}.ts and do not export it
+- make aggregate class package-private (no public modifier)
+- prefer value objects (records) as fields
+- if a field should be a mutable object, define it in the aggregate file and make it package-private
 - never place aggregate snapshot as an aggregate field, add a method returning snapshot
-- do not place read methods for single fields, getters, get{field name} methods in aggregate
+- do not expose public getter methods for individual fields; package-private access is acceptable for internal use within the module
 - implement business rules as private methods (name them according to business rule)
+- use final for the aggregate ID and events list, private for mutable state
 
-```typescript
-export class DeviceConfigurationEditor {
-    // Private fields - only aggregate root can modify them
-    constructor(
-        readonly deviceId: string,
-        readonly events: DomainEvent[],
-        private ownership: Ownership,
-        private location: Location | null,
-        private openingHours: OpeningHours,
-        private settings: Settings,
-    ) {}
+```java
+@AllArgsConstructor
+class Device {
+    final String deviceId;
+    final List<DomainEvent> events;
+    private Ownership ownership;
+    private Location location;
+    private OpeningHours openingHours;
+    private Settings settings;
 
     // Static factory - readable way to create new aggregates
-    static newDeviceConfiguration(deviceId: string): DeviceConfigurationEditor {
-        return new DeviceConfigurationEditor(
-            deviceId,
-            [],
-            Ownership.unowned(),
-            null,
-            OpeningHours.alwaysOpened(),
-            Settings.defaultSettings(),
+    static Device newDevice(String deviceId) {
+        return new Device(
+                deviceId,
+                new ArrayList<>(),
+                Ownership.unowned(),
+                null,
+                OpeningHours.alwaysOpened(),
+                Settings.defaultSettings()
         );
     }
 
     // Public methods modifying internal state and emitting events
-    assignTo(ownership: Ownership): void {
-        // Ensuring additional business rules
-        this.ensureCanAssigne(ownership);
+    void assignTo(Ownership ownership) {
+        Objects.requireNonNull(ownership);
 
         // Ensuring idempotency of processed commands
-        if (!this.ownership.equals(ownership)) {
+        if (!Objects.equals(this.ownership, ownership)) {
             // Changing internal state
             this.ownership = ownership;
             // Formulating event and storing event for emission during persistence
-            this.events.push(new OwnershipUpdated(this.deviceId, ownership));
+            events.add(new OwnershipUpdated(deviceId, ownership));
 
             // Ensuring additional business rules
             if (ownership.isUnowned()) {
-                this.resetToDefaults();
+                resetToDefaults();
             }
         }
     }
 
+    // Private method implementing business rule
+    private void resetToDefaults() {
+        updateLocation(null);
+        updateOpeningHours(OpeningHours.alwaysOpened());
+        updateSettings(Settings.defaultSettings());
+    }
+
     // Method creating state snapshot
-    toDeviceConfiguration(): DeviceConfiguration {
-        const violations = this.checkViolations();
-        return new DeviceConfiguration(
-            this.deviceId,
-            this.ownership,
-            this.location,
-            this.settings,
-            this.openingHours,
-            violations,
+    DeviceConfiguration toDeviceConfiguration() {
+        Violations violations = checkViolations();
+        Visibility visibility = Visibility.basedOn(
+                violations.isValid() && settings.isPublicAccess(),
+                settings.isShowOnMap()
         );
+        return new DeviceConfiguration(
+                deviceId,
+                ownership,
+                location,
+                openingHours,
+                settings,
+                violations,
+                visibility
+        );
+    }
+
+    private Violations checkViolations() {
+        return Violations.builder()
+                .operatorNotAssigned(ownership.operator() == null)
+                .providerNotAssigned(ownership.provider() == null)
+                .locationMissing(location == null)
+                .build();
     }
 }
 ```
@@ -106,7 +148,7 @@ export class DeviceConfigurationEditor {
 - All state changes are visible through emitted events
 - Validations and business rules are enforced inside aggregate
 - Aggregate identifier (ID) is unique in the entire system
-- Aggregate should have a constructor accepting all fields except events field
+- Aggregate should have a constructor accepting all fields (use @AllArgsConstructor from Lombok)
 - Aggregate functionality is always exposed through Service (Primary Port), which manages aggregate lifecycle:
     - obtains existing instances from repository,
     - creates new aggregate instance in appropriate business situations
@@ -119,53 +161,46 @@ Value objects are immutable, have no identity, and represent domain concepts. Tw
 
 **How to implement:**
 
-```typescript
-export class Ownership {
-    // Immutable fields - no setters
-    constructor(
-        readonly operator: string | null,
-        readonly provider: string | null,
-    ) {
-        // Validation in constructor
-        if (
-            (operator === null && provider !== null) ||
-            (operator !== null && provider === null)
-        ) {
-            throw new Error('Ownership must be either owned or unowned');
-        }
+Use Java records for value objects - they provide immutability, automatic equals/hashCode, and concise syntax:
+
+```java
+public record Ownership(String operator, String provider) {
+
+    // Compact constructor for validation
+    public Ownership {
+        assert isUnowned() || isOwned();
     }
 
     // Factory methods for commonly used instances
-    static unowned(): Ownership {
+    public static Ownership unowned() {
         return new Ownership(null, null);
     }
 
-    static of(operator: string, provider: string): Ownership {
+    public static Ownership of(String operator, String provider) {
         return new Ownership(operator, provider);
     }
 
     // Predicate methods expressing domain concepts
-    isUnowned(): boolean {
-        return this.operator === null && this.provider === null;
+    @JsonIgnore
+    public boolean isUnowned() {
+        return operator == null && provider == null;
     }
 
-    // Comparison by value, not by reference
-    equals(ownership: Ownership) {
-        return (
-            this.operator === ownership.operator &&
-            this.provider === ownership.provider
-        );
+    @JsonIgnore
+    public boolean isOwned() {
+        return operator != null && provider != null;
     }
 }
 ```
 
 **Best practices:**
 
-- Always implement `equals()` method
+- Use Java records for value objects (automatic equals/hashCode)
 - Implement static factory methods for readability
-- Validate data in constructor
-- Do not use setters, create new instances when changing
+- Validate data in compact constructor
+- Records are immutable by design - no setters needed
 - Method names should reflect domain language
+- Use @JsonIgnore for derived properties that shouldn't be serialized
 
 ### Domain Events
 
@@ -173,35 +208,30 @@ Domain events represent facts that occurred in the business domain and may trigg
 
 **How to implement:**
 
-```typescript
-// Marker interface
-export interface DomainEvent {
-    readonly deviceId: string;
+Use Java records for domain events - they provide immutability and clear structure:
+
+```java
+// Marker interface or sealed interface
+public sealed interface DomainEvent permits OwnershipUpdated, LocationUpdated, SettingsUpdated {
+    String deviceId();
 }
 
-// Concrete events inheriting
-export class OwnershipUpdated implements DomainEvent {
-    constructor(
-        readonly deviceId: string,
-        readonly ownership: Ownership,
-    ) {}
-}
+// Concrete events as records
+public record OwnershipUpdated(String deviceId, Ownership ownership) implements DomainEvent {}
 
-export class LocationUpdated implements DomainEvent {
-    constructor(
-        readonly deviceId: string,
-        readonly location: Location | null,
-    ) {}
-}
+public record LocationUpdated(String deviceId, Location location) implements DomainEvent {}
+
+public record SettingsUpdated(String deviceId, Settings settings) implements DomainEvent {}
 ```
 
 **Best practices:**
 
 - Name events in past tense (e.g., `OwnershipUpdated`)
-- Events should be immutable
+- Use Java records for immutability
+- Use sealed interfaces to restrict which events can implement the marker
 - Each event should contain all data needed to understand what happened
-- Events should be serializable
-- Do not add event timestamp to events
+- Events should be serializable (records are serializable by default with Jackson)
+- Do not add event timestamp to events - handle timestamps in persistence layer
 
 ## Ports and Adapters (Hexagonal Architecture)
 
@@ -214,50 +244,44 @@ Module functionality is always exposed through Service (Primary Port), which man
 - ensures repository save call
   And coordinates cooperation with other services / modules / external dependencies.
 
-```typescript
-@Injectable()
-export class DeviceConfigurationService {
-    constructor(private readonly repository: DeviceRepository) {}
+```java
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class DeviceService {
 
-    async getDevice(deviceId: string): Promise<DeviceConfiguration | null> {
-        const device = await this.repository.findOne(deviceId);
-        return device?.toDeviceConfiguration() || null;
+    private final DeviceRepository repository;
+
+    @Transactional(readOnly = true)
+    public Optional<DeviceConfiguration> getDevice(String deviceId) {
+        return repository.get(deviceId)
+                .map(Device::toDeviceConfiguration);
     }
 
-    @OnEvent('TaskCreated')
-    async handleTaskCreated(payload: TaskCreatedEvent): Promise<void> {
-        const device = await this.repository.findOne(payload.deviceId);
-        if (!device) {
-            return;
-        }
-        const update = taskToUpdateDevice(payload);
+    public DeviceConfiguration createNewDevice(String deviceId, UpdateDevice update) {
+        Device device = Device.newDevice(deviceId);
         update.apply(device);
-        await this.repository.save(device);
-    }
-
-    async createNewDevice(
-        deviceId: string,
-        update: UpdateDevice,
-    ): Promise<DeviceConfiguration> {
-        const device =
-            DeviceConfigurationEditor.newDeviceConfiguration(deviceId);
-        update.apply(device);
-        await this.repository.save(device);
+        repository.save(device);
         return device.toDeviceConfiguration();
     }
 
-    async updateDevice(
-        deviceId: string,
-        update: UpdateDevice,
-    ): Promise<DeviceConfiguration | null> {
-        const device = await this.repository.findOne(deviceId);
-        if (!device) {
-            return null;
-        }
+    public Optional<DeviceConfiguration> updateDevice(String deviceId, UpdateDevice update) {
+        return repository.get(deviceId)
+                .map(device -> {
+                    update.apply(device);
+                    repository.save(device);
+                    return device.toDeviceConfiguration();
+                });
+    }
 
-        update.apply(device);
-        await this.repository.save(device);
-        return device.toDeviceConfiguration();
+    @EventListener
+    public void handleTaskCreated(TaskCreatedEvent event) {
+        repository.get(event.deviceId())
+                .ifPresent(device -> {
+                    UpdateDevice update = taskToUpdateDevice(event);
+                    update.apply(device);
+                    repository.save(device);
+                });
     }
 }
 ```
@@ -272,93 +296,75 @@ API controllers are primary port adapters that handle HTTP requests and translat
 
 **How to implement:**
 
-```typescript
-@Controller()
-export class BriefsController {
-    constructor(private readonly briefService: BriefService) {}
+```java
+@RestController
+@RequiredArgsConstructor
+class DeviceController {
 
-    @Get('events/:eventId/brief')
-    async getBrief(
-        @Param('eventId') eventId: string,
-        @UserId() userId: string,
-        @TenantId() tenantId: string,
-    ): Promise<BriefDto> {
-        const identity = { tenantId, userId };
-        const brief = await this.briefService.getBrief(identity, eventId);
+    private final DeviceService service;
 
-        if (!brief) {
-            throw new NotFoundException('Not found');
-        }
-
-        return brief;
+    @GetMapping(path = "/devices/{deviceId}", produces = APPLICATION_JSON_VALUE)
+    DeviceConfiguration get(@PathVariable String deviceId) {
+        return service.getDevice(deviceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
-    @Put('events/:eventId/brief')
-    async updateBrief(
-        @Param('eventId') eventId: string,
-        @Body() updateBriefDto: UpdateBriefDto,
-        @UserId() userId: string,
-        @TenantId() tenantId: string,
-    ): Promise<BriefDto> {
-        const identity = { tenantId, userId };
-        const brief = await this.briefService.updateBrief(
-            identity,
-            eventId,
-            updateBriefDto,
-        );
-
-        if (!brief) {
-            throw new NotFoundException('Not found');
-        }
-
-        return brief;
+    @PutMapping(path = "/devices/{deviceId}",
+            consumes = APPLICATION_JSON_VALUE,
+            produces = APPLICATION_JSON_VALUE)
+    DeviceConfiguration put(@PathVariable String deviceId,
+                            @RequestBody @Valid UpdateDevice update) {
+        return service.createNewDevice(deviceId, update);
     }
 
-    // Other API endpoints...
+    @PatchMapping(path = "/devices/{deviceId}",
+            consumes = APPLICATION_JSON_VALUE,
+            produces = APPLICATION_JSON_VALUE)
+    DeviceConfiguration patch(@PathVariable String deviceId,
+                              @RequestBody @Valid UpdateDevice update) {
+        return service.updateDevice(deviceId, update)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
 }
 ```
 
 **Best practices:**
 
-- Controllers should be thin - they only handle security, input validation, primary port call, and response formatting
-- Use decorators to extract data from requests (e.g., identity, parameters)
-- Implement proper error handling and return appropriate HTTP codes
+- Controllers should be thin - they only handle input validation, primary port call, and response formatting
+- Make controllers package-private (no public modifier) when possible
+- Use @RequestBody with @Valid for automatic validation
+- Use Optional and orElseThrow() for proper error handling
+- Return appropriate HTTP status codes using ResponseStatusException
 - Business logic should always be in application/domain layer, never in controller
+- Use @RequiredArgsConstructor from Lombok for constructor injection
 - Group endpoints in controllers by business resources
 
 ### Message Queue and Message Broker Adapters
 
-Message queue and message broker adapters allow integration with external asynchronous communication systems.
+Message queue and message broker adapters allow integration with external asynchronous communication systems like Kafka.
 
 **How to implement:**
 
-```typescript
-@Injectable()
-export class RabbitMqEventAdapter {
-    constructor(
-        @Inject('RabbitMqClient') private client: AmqpConnection,
-        private readonly logger: LoggerService,
-    ) {}
+```java
+@Component
+@RequiredArgsConstructor
+@Slf4j
+class KafkaEventAdapter {
 
-    @RabbitSubscribe({
-        exchange: 'events',
-        routingKey: 'event.*.created',
-        queue: 'brief-service-event-created',
-    })
-    async handleEventCreated(message: EventCreatedMessage): Promise<void> {
+    private final ApplicationEventPublisher eventPublisher;
+
+    @KafkaListener(topics = "device-events", groupId = "device-service")
+    public void handleDeviceEvent(String message) {
         try {
-            const { tenantId, eventId, name } = message;
-            // Passing to primary port
-            await this.eventEmitter.emit('event.created', {
-                tenantId,
-                eventId,
-                name,
-            });
-        } catch (error) {
-            this.logger.error(
-                `Error processing event.created message: ${error.message}`,
-            );
-            throw error; // Reprocessing by broker
+            DeviceEventMessage event = objectMapper.readValue(message, DeviceEventMessage.class);
+            // Passing to internal event bus (Spring ApplicationEventPublisher)
+            eventPublisher.publishEvent(new DeviceCreatedEvent(
+                    event.deviceId(),
+                    event.name()
+            ));
+        } catch (Exception e) {
+            log.error("Error processing device event: {}", e.getMessage(), e);
+            throw e; // Reprocessing by Kafka
         }
     }
 }
@@ -369,34 +375,32 @@ export class RabbitMqEventAdapter {
 - Separate business logic from message broker integration details
 - Implement appropriate message processing patterns (Circuit Breaker, Retry, Dead Letter Queue)
 - Map messages from external format to domain objects
-- Use specialized libraries for broker integration (e.g., @nestjs/microservices)
+- Use Spring Kafka for Kafka integration
 - Ensure proper error and exception handling
-- Standardize queue and exchange naming according to project convention
+- Standardize topic naming according to project convention
+- Use @Slf4j from Lombok for logging
 
-### Cron Jobs Adapter
+### Scheduled Jobs Adapter
 
-Cron job adapters trigger business processes at specified time intervals.
+Scheduled job adapters trigger business processes at specified time intervals using Spring's @Scheduled annotation.
 
 **How to implement:**
 
-```typescript
-@Injectable()
-export class BriefCronJobs {
-    constructor(
-        private readonly briefService: BriefService,
-        private readonly logger: LoggerService,
-    ) {}
+```java
+@Component
+@RequiredArgsConstructor
+@Slf4j
+class DeviceScheduledJobs {
 
-    @Cron('0 0 * * *') // Daily at midnight
-    async sendDailyBriefSummaries(): Promise<void> {
-        this.logger.info('Starting daily brief summaries job');
+    private final DeviceService deviceService;
+
+    @Scheduled(cron = "0 0 * * * *") // Every hour
+    public void cleanupUnassignedDevices() {
+        log.info("Starting cleanup of unassigned devices");
         try {
-            const today = new Date();
-            await this.briefService.generateAndSendDailySummaries(today);
-        } catch (error) {
-            this.logger.error(
-                `Failed to send daily summaries: ${error.message}`,
-            );
+            deviceService.cleanupUnassignedDevices();
+        } catch (Exception e) {
+            log.error("Failed to cleanup devices: {}", e.getMessage(), e);
         }
     }
 }
@@ -404,11 +408,11 @@ export class BriefCronJobs {
 
 **Best practices:**
 
-- Use decorators to define job schedules
-- Implement robust error handling for cron jobs
+- Use @Scheduled annotation with cron expressions
+- Implement robust error handling for scheduled jobs
 - Monitor job execution through logs and metrics
-- Avoid long operations blocking Node.js event loop
-- Consider using separate workers for computationally intensive tasks
+- Use @EnableScheduling in configuration class to enable scheduling
+- Consider using ShedLock for distributed environments to prevent concurrent execution
 
 ### Secondary Ports (Interfaces)
 
@@ -416,29 +420,27 @@ Ports define communication contracts between the domain layer and external syste
 
 **How to implement:**
 
-```typescript
+```java
 // Secondary/Driven Port - used by domain
-export abstract class UserRepository {
-    abstract save(user: UserEditor): Promise<UserEditor>;
-    abstract findById(id: string, tenantId: string): Promise<UserEditor | null>;
-    abstract findAll(tenantId: string, pagable: Pagable): Promise<Page<User>>;
+interface DeviceRepository {
+    Optional<Device> get(String deviceId);
+    void save(Device device);
 }
 
 // Secondary port for external service
-export abstract class FilesRepository {
-    abstract uploadFile(
-        path: string[],
-        file: Attachment,
-    ): Promise<BriefNoteAttachment>;
+interface FileStorage {
+    FileMetadata uploadFile(String path, byte[] content, String contentType);
+    byte[] downloadFile(String path);
 }
 ```
 
 **Best practices:**
 
-- Define ports as abstract classes instead of interfaces to facilitate dependency injection in NestJS
-- Port methods should clearly define expected input and output types
-- Port names should reflect their role in the system (e.g., Repository, Service, Gateway)
+- Define ports as Java interfaces
+- Port methods should clearly define expected input and output types using Optional where appropriate
+- Port names should reflect their role in the system (e.g., Repository, Gateway, Client)
 - Ports should be independent of implementation details
+- Make repository interfaces package-private when they're only used within the module
 
 ### Secondary Port Adapters
 
@@ -446,507 +448,550 @@ Adapters are concrete implementations of ports that connect domains with externa
 
 ### Persistence Adapter
 
-**How to implement PostgreSQL Repository using node-postgres with class-transformer:**
+**How to implement JPA Repository with JSONB storage and optimistic locking:**
 
-Value Objects and Aggregates requires @Type decorators, validation decorators are welcome:
+The repository adapter uses JPA with Hibernate's JSONB support to store aggregates as JSON documents:
 
-```typescript
-import { Pool } from 'pg';
-import { plainToClass, Type } from 'class-transformer';
-import { IsString, IsNotEmpty, ValidateNested } from 'class-validator';
-import { Injectable } from '@nestjs/common';
+```java
+@Primary
+@Repository
+@AllArgsConstructor
+class DeviceDocumentWithHistoryRepository implements DeviceRepository {
 
-// Value Objects
-class Ownership {
-    @IsString()
-    readonly operator: string | null;
+    private final DocumentRepository documents;
+    private final EventRepository events;
+    private final ApplicationEventPublisher publisher;
 
-    @IsString()
-    readonly provider: string | null;
-
-    constructor(operator: string | null, provider: string | null) {
-        this.operator = operator;
-        this.provider = provider;
+    @Override
+    public Optional<Device> get(String deviceId) {
+        return documents.findById(deviceId)
+                .map(DeviceDocumentEntity::getDevice);
     }
 
-    isUnowned(): boolean {
-        return !this.operator && !this.provider;
+    @Override
+    public void save(Device device) {
+        List<DomainEvent> emitted = eventsEmittedFrom(device);
+
+        documents.save(documents.findById(device.deviceId)
+                .orElseGet(() -> new DeviceDocumentEntity(device.deviceId))
+                .setDevice(device)
+        );
+
+        emitted.forEach(event -> events.save(
+                new DeviceEventEntity(device.deviceId, event)
+        ));
+
+        if (!emitted.isEmpty()) {
+            publisher.publishEvent(device.toDeviceConfiguration());
+        }
+        emitted.forEach(publisher::publishEvent);
     }
-}
 
-class Settings {
-    @IsString()
-    readonly mode: string;
-
-    @IsNotEmpty()
-    readonly preferences: Record<string, any>;
-
-    constructor(mode: string, preferences: Record<string, any>) {
-        this.mode = mode;
-        this.preferences = preferences;
+    private static List<DomainEvent> eventsEmittedFrom(Device device) {
+        List<DomainEvent> emitted = List.copyOf(device.events);
+        device.events.clear();
+        return emitted;
     }
-}
 
-// Domain Object
-class Device {
-    @IsString()
-    readonly deviceId: string;
-
-    @ValidateNested()
-    @Type(() => Ownership)
-    readonly ownership: Ownership;
-
-    @ValidateNested()
-    @Type(() => Settings)
-    readonly settings: Settings;
-
-    constructor(deviceId: string, ownership: Ownership, settings: Settings) {
-        this.deviceId = deviceId;
-        this.ownership = ownership;
-        this.settings = settings;
+    // JPA Repository for document storage
+    @Repository
+    interface DocumentRepository extends JpaRepository<DeviceDocumentEntity, String> {
     }
-}
 
-class OptimisticLockError extends Error {
-    constructor(deviceId: string) {
-        super(`Device with id ${deviceId} was modified by another transaction`);
-        this.name = 'OptimisticLockError';
-    }
-}
+    // Entity with JSONB column storing the aggregate
+    @Entity
+    @Table(name = "device_document")
+    @NoArgsConstructor
+    static class DeviceDocumentEntity {
+        @Id
+        private String deviceId;
 
-// Repository Implementation with node-postgres and optimistic locking
-@Injectable()
-class PostgresDeviceRepository implements DeviceRepository {
-    constructor(private readonly pool: Pool) {}
+        @Version
+        private long version;  // Optimistic locking
 
-    async findById(deviceId: string): Promise<Device | null> {
-        const query =
-            'SELECT data, version FROM device_documents WHERE device_id = $1';
+        @Getter
+        @Type(JsonBinaryType.class)
+        private Device device;
 
-        const result = await this.pool.query(query, [deviceId]);
-
-        if (result.rows.length === 0) {
-            return null;
+        public DeviceDocumentEntity setDevice(Device device) {
+            this.device = device;
+            return this;
         }
 
-        // Transform the JSONB data into a Device instance and include version
-        const device = plainToClass(Device, result.rows[0].data);
-        device.version = result.rows[0].version;
-        return device;
+        DeviceDocumentEntity(String deviceId) {
+            this.deviceId = deviceId;
+        }
     }
 
-    async findByOperator(operator: string): Promise<Device[]> {
-        const query = `
-            SELECT data, version 
-            FROM device_documents 
-            WHERE data->'ownership'->>'operator' = $1
-        `;
-
-        const result = await this.pool.query(query, [operator]);
-
-        // Transform array of results including versions
-        return result.rows.map((row) => {
-            const device = plainToClass(Device, row.data);
-            device.version = row.version;
-            return device;
-        });
+    // JPA Repository for event history
+    @Repository
+    interface EventRepository extends CrudRepository<DeviceEventEntity, UUID> {
     }
 
-    async save(device: Device): Promise<void> {
-        // Start a transaction
-        const client = await this.pool.connect();
-        try {
-            await client.query('BEGIN');
+    // Entity for event log
+    @Entity
+    @Table(name = "device_events")
+    @NoArgsConstructor
+    static class DeviceEventEntity {
+        @Id
+        private UUID id;
+        private String deviceId;
+        private String type;
+        private Instant time;
 
-            const upsertQuery = `
-                INSERT INTO device_documents (device_id, data, version)
-                VALUES ($1, $2, COALESCE($3, 0))
-                ON CONFLICT (device_id) DO UPDATE 
-                SET data = $2,
-                    version = device_documents.version + 1
-                WHERE device_documents.version = COALESCE($3, -1)
-                RETURNING version
-            `;
+        @Type(JsonBinaryType.class)
+        private DomainEvent event;
 
-            const result = await client.query(upsertQuery, [
-                device.deviceId,
-                device,
-                device.version,
-            ]);
-
-            // If no rows were affected, it means version mismatch
-            if (result.rowCount === 0) {
-                throw new OptimisticLockError(device.deviceId);
-            }
-
-            // Update the version in memory
-            device.version = result.rows[0].version;
-
-            await client.query('COMMIT');
-        } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-        } finally {
-            client.release();
+        DeviceEventEntity(String deviceId, DomainEvent event) {
+            this.id = UUID.randomUUID();
+            this.deviceId = deviceId;
+            this.type = EventTypes.of(event).type();
+            this.time = Instant.now();
+            this.event = event;
         }
     }
 }
-
-export async function initializeDeviceSchema(pool: Pool): Promise<void> {
-    // see chapter #### Schema Initialization Function
-}
-
-// Module configuration using DatabasePoolProvider
-import { createDatabasePoolProvider } from '@common/database-pool.factory';
-import { initializeDeviceSchema } from './device.repository';
-
-@Module({
-    providers: [
-        createDatabasePoolProvider(initializeDeviceSchema),
-        DeviceRepositoryProvider,
-    ],
-    exports: [DeviceRepository],
-})
-export class DeviceModule {}
 ```
 
-Additional best practices for PostgreSQL with class-transformer:
+**Best practices for JPA with JSONB:**
 
-- Use class-transformer decorators for automatic nested object transformation
-- Combine with class-validator for validation of domain objects
-- Leverage PostgreSQL JSONB operators for efficient querying
-- Maintain domain object immutability through readonly properties
-- Consider adding indexes for frequently queried JSONB paths
-- Use parameterized queries to prevent SQL injection
+- Use `@Type(JsonBinaryType.class)` from Hypersistence Utils for JSONB columns
+- Use `@Version` for optimistic locking (automatic handling by JPA)
+- Nest JPA repository interfaces and entities within the adapter class
+- Make entity classes static and package-private
+- Use `@Primary` annotation when multiple repository implementations exist
+- Events are automatically persisted with metadata (type, timestamp)
+- Use `ApplicationEventPublisher` to publish domain events to Spring event bus
+- Clear the events list after publishing to prevent duplicate publications
 
-#### Schema Initialization Function:
+#### Schema Management
 
-**Schema Initialization**
+**Schema Initialization with Liquibase**
 
-When working with PostgreSQL, it's important to have a reliable way to initialize and update the database schema. The `DatabasePoolProvider` from the common module provides a clean way to handle schema initialization automatically when the database pool is created.
+This project uses Liquibase for database schema management. Liquibase provides version-controlled, declarative schema changes that work consistently across all environments.
 
-```typescript
-export async function initializeSchema(pool: Pool): Promise<void> {
-    const client = await pool.connect();
-    try {
-        // IMPORTANT: DO NOT EDIT EXISTING QUERIES
-        // always add new tables/columns/indexes
-        // at the end of the function
+**Configuration in `application.properties`:**
 
-        // IMPORTANT: remember to add IF NOT EXISTS
+```properties
+# Disable Hibernate auto-DDL - Liquibase manages schema
+spring.jpa.hibernate.ddl-auto=validate
 
-        // Create main table if not exists
-        await client.query(`
-            CREATE TABLE device_documents (
-                device_id TEXT PRIMARY KEY,
-                version INTEGER DEFAULT 0,
-                data JSONB NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-
-        // Add any necessary indexes
-        await client.query(`
-                CREATE INDEX idx_device_operator ON device_documents ((data->'ownership'->>'operator'));
-        `);
-    } finally {
-        client.release();
-    }
-}
+# Enable Liquibase
+spring.liquibase.enabled=true
+spring.liquibase.change-log=classpath:db/db.changelog.yaml
 ```
+
+**Liquibase Changelog Structure** (`src/main/resources/db/db.changelog.yaml`):
+
+Each change is defined as a changeSet with a unique UUID and author. Example from the project:
+
+```yaml
+databaseChangeLog:
+
+  - changeSet:
+      id: 6a47fffc-a97f-4e6a-b37d-22945a26d39a
+      author: michal.michaluk
+      changes:
+        - createTable:
+            tableName: device_document
+            columns:
+              - column:
+                  name: device_id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: int
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: device
+                  type: jsonb
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 29dfd3d3-47e1-4afa-b80d-74f6727544fc
+      author: michal.michaluk
+      changes:
+        - createTable:
+            tableName: device_events
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: device_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: time
+                  type: timestamp without time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event
+                  type: jsonb
+                  constraints:
+                    nullable: false
+```
+
+**Best Practices for Liquibase:**
+
+- **Use UUIDs for changeSet IDs** - ensures global uniqueness across team members
+- **Never modify existing changeSets** - always add new changeSets for schema changes
+- **Use YAML format** - more readable than XML, less error-prone than SQL
+- **Include author information** - helps track who made which changes
+- **Use descriptive comments** - add comments for complex or non-obvious changes
+- **JSONB for aggregate storage** - store entire aggregates as JSON in PostgreSQL
+- **Version columns for optimistic locking** - use `int` with `defaultValue: 1`
+- **Separate event tables** - maintain audit trail with dedicated event tables
+- **Run Liquibase on startup** - `spring.liquibase.enabled=true` ensures schema is always up-to-date
 
 **Testing with Testcontainers:**
 
-For effective testing of PostgreSQL repositories, use Testcontainers to spin up isolated database instances. The test configuration should include the necessary environment variables.
+For effective testing of JPA repositories, use Testcontainers with Spring Boot Test:
 
-```typescript
-import {
-    PostgreSqlContainer,
-    StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
-import { Pool } from 'pg';
+```java
+@SpringBootTest
+@Testcontainers
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+class DeviceDocumentWithHistoryRepositoryTest {
 
-describe('PostgresRepository', () => {
-    let container: StartedPostgreSqlContainer;
-    let repository: Repository;
-    let pool: Pool;
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17.5-alpine")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test");
 
-    beforeAll(async () => {
-        // Start PostgreSQL container
-        container = await new PostgreSqlContainer('postgres:17.5-alpine')
-            .withExposedPorts(5432)
-            .withEnvironment({
-                POSTGRES_USER: 'test',
-                POSTGRES_PASSWORD: 'test',
-                POSTGRES_DB: 'testdb',
-            })
-            .start();
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
 
-        // Create database connection pool
-        pool = new Pool({
-            connectionString: container.getConnectionUri(),
-            idleTimeoutMillis: 30000,
-            max: 20,
-        });
+    @Autowired
+    private DeviceRepository repository;
 
-        await initializeSchema(pool);
-        repository = new PostgresRepository(pool);
-    }, 60000);
+    @Test
+    void shouldSaveAndRetrieveDevice() {
+        // Given
+        Device device = Device.newDevice("test-device-id");
+        device.assignTo(Ownership.of("operator1", "provider1"));
 
-    afterAll(async () => {
-        await pool.end();
-        await container.stop();
-    });
+        // When
+        repository.save(device);
+        Optional<Device> retrieved = repository.get("test-device-id");
 
-    it('should save and retrieve data', async () => {
-        const id = 'test-id';
-        const testData = { field: 'value' };
+        // Then
+        assertThat(retrieved).isPresent();
+        assertThat(retrieved.get().toDeviceConfiguration().ownership())
+                .isEqualTo(Ownership.of("operator1", "provider1"));
+    }
 
-        await repository.save(id, testData);
-        const retrieved = await repository.findById(id);
+    @Test
+    void shouldReturnEmptyForNonExistentDevice() {
+        // When
+        Optional<Device> result = repository.get("non-existent-id");
 
-        expect(retrieved).toEqual(testData);
-    });
-
-    it('should handle non-existent data', async () => {
-        const result = await repository.findById('non-existent-id');
-        expect(result).toBeNull();
-    });
-});
+        // Then
+        assertThat(result).isEmpty();
+    }
+}
 ```
 
-**Additional Best Practices for PostgreSQL:**
+**Best Practices for JPA Repository Testing:**
 
-- Always use IF NOT EXISTS in schema initialization queries
-- Use testcontainers for integration testing with real PostgreSQL instances
-- Clean up database resources after tests
-- Set appropriate timeouts for container startup in tests
-- Implement proper connection pool management
-- Handle database transactions properly
-- Use parameterized queries to prevent SQL injection
+- Use `@Testcontainers` and `@Container` annotations for automatic container lifecycle
+- Use `@DynamicPropertySource` to configure Spring datasource from container
+- Use `@AutoConfigureTestDatabase(replace = NONE)` to prevent H2 auto-configuration
+- Containers are started once per test class and shared across tests
+- Clean up test data between tests using `@Transactional` or manual cleanup
+- Use AssertJ for fluent assertions
+- Test both successful operations and edge cases
 
 **Best practices:**
 
 - Each adapter should implement only one port
 - Adapters should be isolated to be easily replaceable
-- Register adapters as providers in NestJS through abstract class tokens
+- Use Spring's dependency injection - no manual provider registration needed
 - Adapter implementation should handle mapping between domain model and infrastructure model
+- Make adapters package-private when they're only used within the module
 
 ### External System Adapter
 
-```typescript
-@Injectable()
-class AzureStorageService extends FilesRepository {
-    private containerClient;
+Example of integrating with external REST API using Spring's RestTemplate:
 
-    constructor(private configService: ConfigService) {
-        super();
-        this.containerClient = this.initContainerClient();
+```java
+@Component
+@RequiredArgsConstructor
+class ExternalDeviceApiClient implements ExternalDeviceGateway {
+
+    private final RestTemplate restTemplate;
+    private final ExternalApiProperties properties;
+
+    @Override
+    public Optional<ExternalDeviceData> fetchDeviceData(String deviceId) {
+        try {
+            String url = properties.getBaseUrl() + "/devices/" + deviceId;
+            ExternalDeviceResponse response = restTemplate.getForObject(
+                    url,
+                    ExternalDeviceResponse.class
+            );
+            return Optional.ofNullable(response)
+                    .map(this::toDomainModel);
+        } catch (RestClientException e) {
+            log.error("Failed to fetch device data from external API: {}", e.getMessage());
+            return Optional.empty();
+        }
     }
 
-    async uploadFile(
-        path: string[],
-        file: Attachment,
-    ): Promise<BriefNoteAttachment> {
-        const timestamp = new Date().getTime();
-        const uniqueFileName = [
-            ...path,
-            `${timestamp}-${file.originalname}`,
-        ].join('/');
-        const blobClient = this.getBlobClient(uniqueFileName);
-
-        await blobClient.uploadData(file.buffer, {
-            blobHTTPHeaders: {
-                blobContentType: file.mimetype,
-            },
-        });
-
-        return {
-            fileName: file.originalname,
-            fileUrl: blobClient.url,
-            contentType: file.mimetype,
-            size: file.size,
-        };
-    }
-
-    private initContainerClient() {
-        const connectionString = this.configService.getOrThrow<string>(
-            'AZURE_STORAGE_CONNECTION_STRING',
+    private ExternalDeviceData toDomainModel(ExternalDeviceResponse response) {
+        // Map external API response to domain model
+        return new ExternalDeviceData(
+                response.getId(),
+                response.getName(),
+                response.getStatus()
         );
-        const containerName = this.configService.getOrThrow<string>(
-            'AZURE_STORAGE_CONTAINER_NAME',
-        );
-        const blobServiceClient =
-            BlobServiceClient.fromConnectionString(connectionString);
-        return blobServiceClient.getContainerClient(containerName);
-    }
-
-    private getBlobClient(fileName: string): BlockBlobClient {
-        return this.containerClient.getBlockBlobClient(fileName);
     }
 }
 
-export const FilesRepositoryProvider: Provider = {
-    provide: FilesRepository,
-    useClass: AzureStorageService,
-};
+// Configuration properties
+@ConfigurationProperties(prefix = "external.device.api")
+@Validated
+record ExternalApiProperties(
+        @NotBlank String baseUrl,
+        int timeout
+) {}
 ```
 
 **Best practices:**
 
 - Each adapter should implement only one port
 - Adapters should be isolated to be easily replaceable
-- External system API / types / interfaces should be encapsulated in adapter file
-- Register adapters as providers in NestJS through abstract class tokens
-- Adapter implementation should handle mapping between domain model and infrastructure model
+- External system API / types / interfaces should be encapsulated in adapter
+- Use Spring's dependency injection - no manual registration needed
+- Use `@ConfigurationProperties` for external configuration
+- Adapter implementation should handle mapping between domain model and external API model
+- Handle external system failures gracefully (return Optional, use Circuit Breaker patterns)
+- Use `@Component` or `@Service` to register adapters
 
-## Integration with NestJS Modules
+## Integration with Spring Boot
 
-To integrate ports and adapters with NestJS architecture, while encapsulating adapter implementation under contract, they should be properly defined in the module using provider.
+Spring Boot's dependency injection and component scanning automatically wire up ports and adapters. Configuration is done through annotations and Spring's application context.
 
 **How to implement:**
 
-```typescript
-@Module({
-    imports: [CommonModule, ConfigModule],
-    controllers: [UsersController],
-    providers: [
-        UserService,
-        UserRepositoryProvider,
-        NotificationServiceProvider,
-    ],
-    exports: [UserService],
-})
-export class UsersModule {}
+```java
+@Configuration
+@EnableJpaRepositories
+@EnableTransactionManagement
+@EnableScheduling
+public class AppConfiguration {
+
+    // Bean definitions for custom components if needed
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder
+                .setConnectTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofSeconds(30))
+                .build();
+    }
+}
+```
+
+**Module organization in Spring Boot:**
+
+```
+src/main/java/
+  {domain}/
+    {module}/
+      device/
+        Device.java                    # Aggregate (package-private)
+        DeviceConfiguration.java       # Immutable snapshot (public)
+        Ownership.java                 # Value object (public record)
+        DomainEvent.java              # Events (public sealed interface)
+        DeviceService.java            # Service (public)
+        DeviceController.java         # Controller (package-private)
+        DeviceRepository.java         # Port (package-private interface)
+        DeviceDocumentWithHistoryRepository.java  # Adapter (package-private)
 ```
 
 **Best practices:**
 
-- Define providers as exported constants, with clearly specified token and implementation class
-- Inject ports through tokens into application services
-- Maintain all adapters for the same module in consistent directories
+- Use Spring's component scanning - annotate with @Service, @Repository, @Controller
+- Services are public, controllers and adapters can be package-private
+- No manual provider registration needed - Spring handles dependency injection
+- Use constructor injection with final fields (enabled by @RequiredArgsConstructor)
+- Group related components by feature/domain, not by layer
+- Configuration classes should be minimal - rely on auto-configuration
+
+**When to use Stream vs List in return types:**
+
+- Use `Stream<T>` for potentially large result sets that will be processed lazily (e.g., database queries with transformations)
+- Use `List<T>` for small, bounded collections that are immediately materialized
+- Use `Page<T>` for paginated results that include metadata (total count, page number)
+- Always close streams or use them in try-with-resources when they come from JPA repositories
 
 ## Unit Testing
 
+Unit tests verify individual components (aggregates, value objects, services) in isolation from infrastructure.
+
+**Testing Aggregates:**
+
+```java
+class DeviceTest {
+
+    @Test
+    void shouldAssignOwnershipAndEmitEvent() {
+        // Given
+        Device device = Device.newDevice("device-1");
+
+        // When
+        device.assignTo(Ownership.of("operator1", "provider1"));
+
+        // Then
+        assertThat(device.toDeviceConfiguration().ownership())
+                .isEqualTo(Ownership.of("operator1", "provider1"));
+        assertThat(device.events).hasSize(1);
+        assertThat(device.events.get(0)).isInstanceOf(OwnershipUpdated.class);
+    }
+
+    @Test
+    void shouldResetToDefaultsWhenUnassigned() {
+        // Given
+        Device device = Device.newDevice("device-1");
+        device.assignTo(Ownership.of("operator1", "provider1"));
+        device.updateSettings(Settings.of(true, true));
+        device.events.clear();
+
+        // When
+        device.assignTo(Ownership.unowned());
+
+        // Then
+        DeviceConfiguration config = device.toDeviceConfiguration();
+        assertThat(config.ownership()).isEqualTo(Ownership.unowned());
+        assertThat(config.settings()).isEqualTo(Settings.defaultSettings());
+        assertThat(device.events).hasSizeGreaterThan(1);
+    }
+}
+```
+
+**Testing Value Objects:**
+
+```java
+class OwnershipTest {
+
+    @Test
+    void shouldBeUnownedWhenBothNull() {
+        Ownership ownership = Ownership.unowned();
+        assertThat(ownership.isUnowned()).isTrue();
+        assertThat(ownership.isOwned()).isFalse();
+    }
+
+    @Test
+    void shouldBeOwnedWhenBothPresent() {
+        Ownership ownership = Ownership.of("operator1", "provider1");
+        assertThat(ownership.isOwned()).isTrue();
+        assertThat(ownership.isUnowned()).isFalse();
+    }
+
+    @Test
+    void shouldUseValueEquality() {
+        Ownership ownership1 = Ownership.of("operator1", "provider1");
+        Ownership ownership2 = Ownership.of("operator1", "provider1");
+        assertThat(ownership1).isEqualTo(ownership2);
+    }
+}
+```
+
 ## Testing Adapters
 
-Adapters should be tested in isolation to ensure correct integration with external systems. In particular, integration tests using test containers (Testcontainers) allow effective testing of real adapter implementations without using mocks.
+Adapters should be tested in isolation to ensure correct integration with external systems. Integration tests using Testcontainers allow effective testing of real adapter implementations without using mocks.
 
-**How to implement:**
+**How to implement repository tests:**
 
-```typescript
-describe('BriefAzureTableRepository', () => {
-    let repository: BriefRepository;
-    let azuriteContainer: StartedAzuriteContainer;
+```java
 
-    beforeAll(async () => {
-        // Starting Azurite container for testing Azure Table Storage integration
-        azuriteContainer = await new AzuriteContainer()
-            .withInMemoryPersistence()
-            .withStartupTimeout(60000)
-            .start();
-    }, 90000);
+@IntegrationTest
+@RecordApplicationEvents
+class DeviceDocumentWithHistoryRepositoryTest {
 
-    afterAll(async () => {
-        // Stopping container after all tests
-        await azuriteContainer?.stop();
-    });
+    @Autowired
+    DeviceDocumentWithHistoryRepository repository;
 
-    beforeEach(async () => {
-        const containerName = 'test-briefs';
-        // Configuring test module with real repository
-        const moduleFixture: TestingModule = await Test.createTestingModule({
-            imports: [
-                ConfigModule.forRoot({
-                    isGlobal: true,
-                    load: [
-                        () => ({
-                            AZURE_STORAGE_CONNECTION_STRING:
-                                azuriteContainer.getConnectionString(),
-                            AZURE_STORAGE_CLIENT_OPTIONS:
-                                '{ "allowInsecureConnection": true }',
-                        }),
-                    ],
-                }),
-            ],
-            providers: [BriefRepositoryProvider],
-        }).compile();
+    @Autowired
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    private ApplicationEvents emitted;
 
-        // Initializing Azure container before starting tests
-        const { TableServiceClient } = require('@azure/data-tables');
-        const tableServiceClient = TableServiceClient.fromConnectionString(
-            azuriteContainer.getConnectionString(),
-            { allowInsecureConnection: true },
-        );
-        try {
-            await tableServiceClient.createTable('briefs');
-            await tableServiceClient.createTable('briefnotes');
-        } catch (error) {
-            // Tables may already exist
-        }
+    @Test
+    void saveAndGetDevice() {
+        Device saved = DeviceFixture.givenStepByStepConfiguredDevice();
+        transactional(() -> repository.save(saved));
+        Optional<Device> read = transactional(() -> repository.get(saved.deviceId));
 
-        repository = moduleFixture.get<BriefRepository>(BriefRepository);
-    });
+        JsonAssert.assertThat(read).isExactlyLike("""
+                {
+                  "deviceId": "%s",
+                  "events": [],
+                  "ownership": {
+                    "operator": "Devicex.nl",
+                    "provider": "public-devices"
+                  },
+                  "location": {
+                    "street": "Rakietowa",
+                    "houseNumber": "1A",
+                    "city": "Wrocław",
+                    "postalCode": "54-621",
+                    "state": null,
+                    "country": "POL",
+                    "coordinates": {
+                      "longitude": 51.09836221719513,
+                      "latitude": 16.931752852309156
+                    }
+                  },
+                  "openingHours": {
+                    "alwaysOpen": true
+                  },
+                  "settings": {
+                    "autoStart": false,
+                    "remoteControl": false,
+                    "billing": false,
+                    "reimbursement": false,
+                    "showOnMap": false,
+                    "publicAccess": false
+                  }
+                }
+                """, saved.deviceId);
+    }
 
-    it('should save and retrieve brief', async () => {
-        // Creating example aggregate
-        const identity = { tenantId: 'test-tenant' };
-        const eventId = 'test-event-123';
-        const briefEditor = BriefEditor.createNew(
-            identity.tenantId,
-            eventId,
-            'Test Event',
-        );
+    @Test
+    void emitsDomainEvents() {
+        Device saved = DeviceFixture.givenStepByStepConfiguredDevice();
+        transactional(() -> repository.save(saved));
 
-        // Testing save
-        await repository.saveBrief(briefEditor);
-
-        // Testing retrieval
-        const retrievedBrief = await repository.getBrief(identity, eventId);
-
-        expect(retrievedBrief).not.toBeNull();
-        expect(retrievedBrief.eventId).toBe(eventId);
-        expect(retrievedBrief.tenantId).toBe(identity.tenantId);
-    });
-
-    it('should return null when brief not found', async () => {
-        // Testing behavior for non-existent item
-        const retrievedBrief = await repository.getBrief(
-            { tenantId: 'test-tenant' },
-            'non-existent-event',
-        );
-
-        expect(retrievedBrief).toBeNull();
-    });
-
-    it('should save and retrieve notes', async () => {
-        // Testing notes functionality
-        const eventId = 'test-event-456';
-        const note = new BriefNote(
-            eventId,
-            'note-1',
-            'Test note content',
-            new Date().toISOString(),
-            'test-user',
-            [],
-        );
-
-        await repository.saveNote(note);
-
-        const retrievedNote = await repository.getNote(eventId, 'note-1');
-        expect(retrievedNote).not.toBeNull();
-        expect(retrievedNote.content).toBe('Test note content');
-
-        // Testing pagination
-        const notesPage = await repository.getNotes(eventId, {
-            limit: 10,
-            offset: 0,
-        });
-        expect(notesPage.data).toHaveLength(1);
-        expect(notesPage.count.total).toBe(1);
-    });
-});
+        assertThat(emitted.stream(DomainEvent.class))
+                .containsExactly(
+                        new OwnershipUpdated(saved.deviceId, DeviceFixture.ownership()),
+                        new LocationUpdated(saved.deviceId, DeviceFixture.location())
+                );
+        assertThat(emitted.stream(DeviceConfiguration.class))
+                .containsExactly(saved.toDeviceConfiguration());
+    }
+}
 ```
 
 **Best practices:**
@@ -963,217 +1008,328 @@ describe('BriefAzureTableRepository', () => {
 
 ## Implementation Guidelines
 
+### Implementation Workflow
+
+When implementing a new feature or module, follow this order:
+
+1. **Identify Domain Concepts**:
+   - Identify aggregates (entities with identity and lifecycle)
+   - Identify value objects (immutable concepts without identity)
+   - Define domain events that represent state changes
+
+2. **Design Aggregates**:
+   - Create aggregate class (package-private)
+   - Define value objects as records (public)
+   - Implement business methods that modify state and emit events
+   - Add method to create immutable snapshot (e.g., `toDeviceConfiguration()`)
+
+3. **Define Ports**:
+   - Create repository interface (package-private)
+   - Define secondary ports for external systems (package-private interfaces)
+
+4. **Implement Service (Primary Port)**:
+   - Create service class (public, annotated with @Service)
+   - Implement business operations using aggregates
+   - Manage aggregate lifecycle (load from repository, create new, save)
+   - Coordinate with other services if needed
+
+5. **Implement Adapters**:
+   - Implement repository adapter with JPA (package-private)
+   - Implement HTTP controller (package-private)
+   - Implement external system adapters (package-private)
+
+6. **Add Database Schema**:
+   - Create Liquibase changelog with UUID-based changeSet IDs
+   - Define tables for document storage (with @Version for optimistic locking)
+   - Define tables for event storage
+
+7. **Write Tests**:
+   - Unit tests for aggregates and value objects
+   - Integration tests for repository adapters (using Testcontainers)
+   - End-to-end tests for complete business flows
+
+### Core Rules
+
 1. **Domain layer should be independent of infrastructure:**
-    - Do not import framework libraries in domain classes
+    - Do not import framework libraries in domain classes (aggregates, value objects)
     - Use ports to communicate with external systems
+    - Domain events and value objects can use framework annotations for serialization (e.g., @JsonIgnore)
 
 2. **Naming should reflect domain language:**
-    - Use terms from domain experts' language
-    - Avoid technical terms in domain classes
+    - Use terms from domain experts' language (ubiquitous language)
+    - Avoid technical terms in domain classes (no "Entity", "DTO", "Manager" suffixes)
+    - Method names should express business operations, not CRUD operations
 
 3. **Testing:**
-    - Test aggregates in isolation
-    - Test value objects with logic in isolation
-    - Implement integration tests for adapters
+    - Test aggregates in isolation (unit tests)
+    - Test value objects with logic in isolation (unit tests)
+    - Implement integration tests for adapters (using Testcontainers)
     - Implement end-to-end tests for entire module functionality through API, along with persistence adapter, use testcontainers where possible
 
 **General best practices:**
 
 - do not use comments in code, if code block is larger prefer well-named private method
 - do not add \_ prefix to private fields
+- prefer composition over inheritance
+- use Optional for nullable return types, never return null from public methods
+- use records for immutable DTOs, snapshots, and value objects
+- use sealed interfaces for type hierarchies that should be closed (e.g., domain events)
 
 ## End-to-End Testing of Business Modules
 
 End-to-end (e2e) tests verify the operation of the entire business module, from API controllers to infrastructure adapters, using real external dependencies. Containerization (Testcontainers) enables isolated and repeatable test environment.
 
-**How to implement:**
+**How to implement repository tests:**
 
-```typescript
-import {
-    PostgreSqlContainer,
-    StartedPostgreSqlContainer,
-} from '@testcontainers/postgresql';
+```java
+@IntegrationTest(profiles = {"auth-test", "kafka-test", "integration-test"})
+class E2EScenariosTest {
 
-describe('Briefs (e2e)', () => {
-    let app: INestApplication;
-    let azuriteContainer: StartedAzuriteContainer;
-    let postgresContainer: StartedPostgreSqlContainer;
-    let eventEmitter: EventEmitter;
+    @Autowired
+    AuthFixture auth;
+    @Autowired
+    RequestsFixture requests;
+    @Autowired
+    InstallationService service;
+    @Autowired
+    KafkaFixture kafka;
+    @Autowired
+    RestTemplateFixture rest;
+    private MockRestServiceServer installations2DeviceClient;
 
-    const eventId = generateRandomEventId();
+    final String orderId = DeviceFixture.randomId();
+    final String deviceId = DeviceFixture.randomId();
 
-    beforeAll(async () => {
-        // Starting PostgreSQL container for database testing
-        postgresContainer = await new PostgreSqlContainer(
-            'postgres:17.5-alpine',
-        )
-            .withExposedPorts(5432)
-            .withEnvironment({
-                POSTGRES_USER: 'test',
-                POSTGRES_PASSWORD: 'test',
-                POSTGRES_DB: 'testdb',
-            })
-            .start();
-
-        // Starting Azurite container imitating Azure Storage
-        azuriteContainer = await new AzuriteContainer()
-            .withInMemoryPersistence()
-            .withStartupTimeout(60000)
-            .start();
-    }, 90000);
-
-    afterAll(async () => {
-        // Cleanup after all tests
-        await azuriteContainer?.stop();
-        await postgresContainer?.stop();
-    });
-
-    beforeEach(async () => {
-        // Container and necessary resources configuration
-        const containerName = 'briefs-atachements';
-
-        // Migrate database schemas before running tests
-        await migrateSchemas(postgresContainer.getConnectionUri(), [
-            BriefDatabaseSchema,
-            BriefNoteDatabaseSchema,
-        ]);
-
-        // Creating test module with real dependencies
-        const moduleFixture: TestingModule = await Test.createTestingModule({
-            imports: [
-                ConfigModule.forRoot({
-                    isGlobal: true,
-                    load: [
-                        () => ({
-                            // Database configuration
-                            DATABASE_URL: postgresContainer.getConnectionUri(),
-                            POSTGRES_POOL_MAX: 10,
-                            POSTGRES_IDLE_TIMEOUT_MS: 30000,
-                            POSTGRES_CONNECTION_TIMEOUT_MS: 2000,
-                            // Azure Storage configuration
-                            AZURE_STORAGE_CONNECTION_STRING:
-                                azuriteContainer.getConnectionString(),
-                            AZURE_STORAGE_CONTAINER_NAME: containerName,
-                            AZURE_STORAGE_CLIENT_OPTIONS:
-                                '{ "allowInsecureConnection": true }',
-                        }),
-                    ],
-                }),
-                EventEmitterModule.forRoot(),
-                DatabaseModule.forRoot(), // Required for database connectivity
-                BriefsModule, // Tested business module
-            ],
-        }).compile();
-
-        app = moduleFixture.createNestApplication();
-        eventEmitter = app.get<EventEmitter>(EventEmitter);
-
-        // Initializing external resources
-        const { BlobServiceClient } = require('@azure/storage-blob');
-        const blobServiceClient = BlobServiceClient.fromConnectionString(
-            azuriteContainer.getConnectionString(),
-        );
-        const containerClient =
-            blobServiceClient.getContainerClient(containerName);
-        try {
-            await containerClient.create();
-        } catch (error) {}
-
-        // Apply production-like setup configuration
-        setup(app);
-        await app.init();
-    });
-
-    afterEach(async () => {
-        // Cleanup after each test
-        await app.close();
-    });
-
-    // Negative case test
-    it('should handle nonexistent resources gracefully', async () => {
-        const response = await request(app.getHttpServer())
-            .get(`/events/nonexistent-id/brief`)
-            .expect(404);
-
-        expect(response.body).toHaveProperty('message');
-    });
-
-    // Business flow test - from initiating event to full functionality
-    describe('complete business flow', () => {
-        it('should react to domain events', async () => {
-            // Emitting domain event
-            const eventCreated = {
-                tenantId: 'tenant',
-                eventId: eventId,
-                name: 'Test Event',
-            };
-            await emitAndWait('event.created', eventCreated);
-
-            // Checking system reaction to event
-            const response = await request(app.getHttpServer())
-                .get(`/events/${eventId}/brief`)
-                .expect(200);
-
-            expect(response.body).toMatchObject({
-                eventId: eventId,
-                tenantId: 'tenant',
-                name: 'Test Event',
-            });
-        });
-
-        it('should support complete business process', async () => {
-            // Testing business data update
-            await request(app.getHttpServer())
-                .put(`/events/${eventId}/brief`)
-                .send({
-                    details: { location: 'Test Location' },
-                })
-                .expect(200);
-
-            // Testing related resources creation
-            const noteResponse = await request(app.getHttpServer())
-                .post(`/events/${eventId}/brief/notes`)
-                .field('content', 'Test note content')
-                .attach('attachments', path.join(__dirname, 'test-file.txt'))
-                .expect(201);
-
-            expect(noteResponse.body).toMatchObject({
-                eventId: eventId,
-                content: 'Test note content',
-                attachments: [
-                    {
-                        fileName: 'test-file.txt',
-                        fileUrl: expect.any(String),
-                    },
-                ],
-            });
-
-            // Testing related resources list retrieval
-            const listResponse = await request(app.getHttpServer())
-                .get(`/events/${eventId}/brief/notes`)
-                .expect(200);
-
-            expect(listResponse.body.data).toHaveLength(1);
-            expect(listResponse.body.data[0].content).toBe('Test note content');
-        });
-    });
-
-    // Helper function for emitting and waiting for event processing
-    async function emitAndWait(eventName: string, payload: any) {
-        const processed = eventEmitter.waitFor(eventName + '.processed');
-        eventEmitter.emit(eventName, payload);
-        await processed;
+    @BeforeEach
+    void setUp() {
+        installations2DeviceClient = rest.getRestTemplate("devicesClient", "rest")
+            .overrideToLocalServer()
+            .interceptToMockRestServiceServer();
+        requests.withJwt(auth.tokenFor("john", "john"));
     }
-});
+
+    @Test
+    void fullInstallationAndConfigurationOfDevice() {
+        // when
+        kafka.publish("sales.work-orders", orderId, """
+        {
+            "id": "%s",
+            "tenant": "Devicex.nl",
+            "account": "public-devices"
+        }
+        """, orderId);
+
+        // given
+        requests.installations.get(0, 10000).isExactlyLike("""
+        {"content":[{"orderId":"%s","deviceId":null,"state":"PENDING"}],"totalPages":1,"totalElements":1,"page":0,"size":1}""", orderId);
+        requests.installations.get(orderId).isExactlyLike("""
+        {"orderId":"%s","deviceId":null,"state":"PENDING"} """, orderId);
+
+        // when
+        requests.installations.patch(orderId, """
+        { "assignDevice": "%s" } """, deviceId)
+            .isExactlyLike("""
+        {"orderId":"%s","deviceId":"%s","state":"DEVICE_ASSIGNED"}""", orderId, deviceId);
+
+        // when
+        requests.installations.patch(orderId, """
+        {
+            "assignLocation": {
+            "street": "Rakietowa",
+                "houseNumber": "1A",
+                "city": "Wrocław",
+                "postalCode": "54-621",
+                "state": null,
+                "country": "POL",
+                "coordinates": {
+                "longitude": 51.09836221719513,
+                    "latitude": 16.931752852309156
+            }
+        }
+        }""")
+            .isExactlyLike("""
+        {"orderId":"%s","deviceId":"%s","state":"DEVICE_ASSIGNED"}
+        """, orderId, deviceId);
+
+        requests.communication.bootIot16(deviceId, """
+        {
+            "chargePointVendor": "Garo",
+            "chargePointModel": "CPF25 Family",
+            "chargePointSerialNumber": "820394A93203",
+            "chargeBoxSerialNumber": "891234A56711",
+            "firmwareVersion": "1.1",
+            "iccid": "112233445566778899C1",
+            "imsi": "082931213347973812",
+            "meterType": "5051",
+            "meterSerialNumber": "937462A48276"
+        }
+        """)
+            .hasFieldsLike("""
+        {"interval":1800,"status":"Pending"}
+        """, orderId, deviceId);
+
+        requests.installations.get(orderId)
+            .isExactlyLike("""
+        {"orderId":"%s","deviceId":"%s","state":"BOOTED"}
+        """, orderId, deviceId);
+
+        requests.installations.patch(orderId, """
+        { "confirmBoot": true }""")
+            .isExactlyLike("""
+        {"orderId":"%s","deviceId":"%s","state":"BOOTED"}""", orderId, deviceId);
+
+        requests.intervals.put("""
+        {
+            "byIds": [ { "seconds": 600, "devices": [ "%s" ] } ],
+            "byModel": [ ],
+            "defSeconds": 1800
+        }
+        """, deviceId);
+
+        installations2DeviceClient.expect(requestTo(STR."http://devices-service.cpo-namespace/devices/\{deviceId}"))
+    .andExpect(method(PUT))
+            .andExpect(content().json("""
+        {
+            "ownership": {
+            "operator": "Devicex.nl",
+                "provider": "public-devices"
+        },
+            "location": {
+            "street": "Rakietowa",
+                "houseNumber": "1A",
+                "city": "Wrocław",
+                "postalCode": "54-621",
+                "state": null,
+                "country": "POL",
+                "coordinates": {
+                "longitude": 51.09836221719513,
+                    "latitude": 16.931752852309156
+            }
+        }
+        }
+        """))
+            .andRespond(withSuccess());
+
+        requests.installations.patch(orderId, """
+        { "complete": true }""")
+            .isExactlyLike("""
+        {"orderId":"%s","deviceId":"%s","state":"COMPLETED"}""", orderId, deviceId);
+
+        requests.communication.bootIot16(deviceId, """
+        {
+            "chargePointVendor": "Garo",
+            "chargePointModel": "CPF25 Family",
+            "chargePointSerialNumber": "820394A93203",
+            "chargeBoxSerialNumber": "891234A56711",
+            "firmwareVersion": "1.13",
+            "iccid": "112233445566778899C1",
+            "imsi": "082931213347973812",
+            "meterType": "5051",
+            "meterSerialNumber": "937462A48276"
+        }
+        """)
+            .hasFieldsLike("""
+        {"interval":600,"status":"Accepted"}
+        """, orderId, deviceId);
+
+        requests.devices.get(deviceId).isExactlyLike("""
+        {
+            "deviceId": "%s",
+            "ownership": {
+            "operator": "Devicex.nl",
+                "provider": "public-devices"
+        },
+            "location": {
+            "street": "Rakietowa",
+                "houseNumber": "1A",
+                "city": "Wrocław",
+                "postalCode": "54-621",
+                "state": null,
+                "country": "POL",
+                "coordinates": {
+                "longitude": 51.09836221719513,
+                    "latitude": 16.931752852309156
+            }
+        },
+            "openingHours": {
+            "alwaysOpen": true
+        },
+            "settings": {
+            "autoStart": false,
+                "remoteControl": false,
+                "billing": false,
+                "reimbursement": false,
+                "showOnMap": false,
+                "publicAccess": false
+        },
+            "violations": {
+            "operatorNotAssigned": false,
+                "providerNotAssigned": false,
+                "locationMissing": false,
+                "showOnMapButMissingLocation": false,
+                "showOnMapButNoPublicAccess": false
+        },
+            "visibility": {
+            "roamingEnabled": false,
+                "forCustomer": "INACCESSIBLE_AND_HIDDEN_ON_MAP"
+        },
+            "boot": {
+            "protocol": "IoT16",
+                "vendor": "Garo",
+                "model": "CPF25 Family",
+                "serial": "891234A56711",
+                "firmware": "1.13"
+        }
+        }
+        """, deviceId);
+
+        requests.devices.patch(deviceId, """
+        {
+            "settings": {
+            "publicAccess": true,
+                "showOnMap": true
+        }
+        }
+        """).hasFieldsLike("""
+        {
+            "deviceId": "%s",
+            "settings": {
+            "showOnMap": true,
+                "publicAccess": true
+        },
+            "visibility": {
+            "forCustomer": "USABLE_AND_VISIBLE_ON_MAP"
+        }
+        }
+        """, deviceId);
+
+        requests.devices.get(deviceId).hasFieldsLike("""
+        {
+            "deviceId": "%s",
+            "settings": {
+            "showOnMap": true,
+                "publicAccess": true
+        },
+            "visibility": {
+            "forCustomer": "USABLE_AND_VISIBLE_ON_MAP"
+        }
+        }
+        """, deviceId);
+    }
+}
 ```
 
 **Key e2e test configuration elements:**
 
-1. **Database schema migration**: BeforeAll running tests, call `migrateSchemas()` with appropriate module schemas to create database tables and structures before first test runn.
+1. **Test isolation**: Use `@Testcontainers` with PostgreSQL containers to ensure each test suite runs in an isolated environment
 
-2. **DatabaseModule.forRoot()**: Required in tests after setting environments, provides database connection pool configuration to all modules.
+2. **Test profiles**: Use Spring profiles (e.g., `@SpringBootTest(properties = {"spring.profiles.active=test"})`) to enable test-specific configurations
 
-3. **setup(app)**: Call the setup function analogous to production application configuration, which sets up global filters, middleware and other configurations.
+3. **Test fixtures**: Create fixture classes to encapsulate common test setup and assertions (e.g., `RequestsFixture`, `KafkaFixture`)
+
+4. **Database state management**: Use `@Transactional` on test methods to automatically rollback changes, or implement manual cleanup between tests
+
+5. **Mock external dependencies**: Use `MockRestServiceServer` or similar tools to mock external HTTP services
 
 **Best practices:**
 
@@ -1193,240 +1349,180 @@ describe('Briefs (e2e)', () => {
 
 Remember that e2e tests are the highest level of tests and should verify key business functionalities from the end-user perspective, not implementation details. These tests complement, not replace, unit and integration tests.
 
-### Pagination with PostgreSQL
+### Pagination with Spring Data JPA
 
-When implementing pagination in PostgreSQL repositories, it's important to handle both the data retrieval and total count efficiently. The `common.model.ts` provides helper types and functions for pagination:
+When implementing pagination in Spring Data JPA repositories, Spring provides built-in support through `org.springframework.data.domain.Pageable` interface and `org.springframework.data.domain.Page<T>` return type.
 
-```typescript
-// Types and helper function from common.model.ts
-export type Pagable = { limit: number; offset: number };
+**How to implement:**
 
-export function pagable(limit?: number, offset?: number): Pagable {
-    return {
-        limit: Math.min(100, Math.max(1, limit ?? 20)),
-        offset: Math.max(0, offset ?? 0),
-    };
+```java
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+// Repository with pagination support
+@Repository
+interface DeviceReadsRepository extends JpaRepository<DeviceReadsEntity, String> {
+    // Returns all results without pagination
+    Stream<DeviceReadsEntity> findAllByOperator(String operator);
+
+    // Returns paginated results
+    Page<DeviceReadsEntity> findAllByOperator(String operator, Pageable pageable);
 }
 
-export class Page<T> {
-    constructor(
-        readonly data: T[],
-        readonly paging: {
-            readonly limit: number;
-            readonly offset: number;
-            readonly total: number;
-        },
-    ) {}
+// Service layer with pagination
+@Component
+@Transactional
+@AllArgsConstructor
+class DevicesReadModel {
 
-    map<R>(mapper: (T: any) => R): Page<R> {
-        return new Page(this.data.map(mapper), this.paging);
+    private final DeviceReadsRepository repository;
+
+    @Transactional(readOnly = true)
+    public List<DevicePin> queryPins(String operator) {
+        return repository.findAllByOperator(operator)
+                .map(DeviceReadsEntity::getPin)
+                .toList();
     }
-}
-```
 
-Here's an example implementation using the `Page` and `Pagable` types with advanced filtering:
-
-```typescript
-// Repository method implementation with filtering
-async findAll(
-    pagable: Pagable,
-    type?: string | string[],
-    query?: string,
-): Promise<Page<{ id: string; metadata: DocumentMetadata }>> {
-    const sql = `
-        WITH filtered_documents AS (
-            SELECT document_id, data
-            FROM document_documents
-            WHERE (data -> 'metadata' ->> 'type' = ANY($1) OR $1 IS NULL)
-              AND (data -> 'metadata' ->> 'title' ILIKE $2 OR $2 IS NULL)
-        )
-        SELECT
-            filtered.document_id as id,
-            filtered.data -> 'metadata' as metadata,
-            (SELECT COUNT(*) FROM filtered_documents) as total_count
-        FROM filtered_documents filtered
-        ORDER BY (filtered.data -> 'metadata' ->> 'title') ASC
-        LIMIT $3
-        OFFSET $4
-    `;
-
-    const result = await this.pool.query(sql, [
-        type ? [type] : null,
-        query ? `%${query}%` : null,
-        pagable.limit,
-        pagable.offset,
-    ]);
-
-    // Transform results to domain objects
-    const documents = result.rows.map((row) => {
-        return {
-            id: row.id,
-            metadata: row.metadata,
-        };
-    });
-
-    // Create and return a Page instance
-    return new Page(documents, {
-        limit: pagable.limit,
-        offset: pagable.offset,
-        total: parseInt(result.rows[0]?.total_count || '0', 10),
-    });
-}
-
-// Usage in service layer
-@Injectable()
-class DocumentService {
-    constructor(private readonly repository: DocumentRepository) {}
-
-    async listDocuments(
-        pagable: Pagable,
-        type?: string | string[],
-        query?: string
-    ): Promise<Page<{ id: string; metadata: DocumentMetadata }>> {
-        return this.repository.findAll(pagable, type, query);
+    @Transactional(readOnly = true)
+    public Page<DeviceSummary> querySummary(String operator, Pageable pageable) {
+        return repository.findAllByOperator(operator, pageable)
+                .map(DeviceReadsEntity::getSummary);
     }
 }
 
-// Controller implementation using helper function
-@Controller('documents')
-class DocumentController {
-    constructor(private readonly service: DocumentService) {}
+// Controller with pagination parameters
+@RestController
+@RequiredArgsConstructor
+class DeviceReadsController {
 
-    @Get()
-    async getDocuments(
-        @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
-        @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-        @Query('type') type?: string,
-        @Query('query') query?: string
-    ): Promise<Page<DocumentMetadata & { id: string }>> {
-        const pagableParams = pagable(limit, offset);
+    private final DevicesReadModel projection;
 
-        return this.service.listDocuments(pagableParams, type, query)
-            .map(doc => ({id: doc.id, ...doc.metadata}));
+    @GetMapping(path = "/devices/summary", produces = APPLICATION_JSON_VALUE)
+    Page<DeviceSummary> getSummary(
+            @RequestParam String operator,
+            Pageable pageable) {
+        return projection.querySummary(operator, pageable);
     }
 }
 ```
 
 **Best practices for pagination:**
 
-- Use the `pagable()` helper function to create pagination parameters with proper validation
-- Use CTEs (Common Table Expressions) to efficiently get both data and total count in a single query
+- Use Spring Data's `Pageable` interface for pagination parameters
+- Use `Page<T>` return type to include pagination metadata
+- Spring automatically handles query parameters like `page`, `size`, `sort`
+- Use `Page.map()` method for transforming paginated results
 - Apply proper indexing on frequently used filtering and sorting columns
 - Consider using cursor-based pagination for large datasets
-- Implement reasonable defaults and limits for page size (helper function enforces max 100 items)
-- Add proper validation for pagination parameters
-- Use appropriate HTTP headers or response envelope for pagination metadata
-- Consider caching total counts for large tables
-- Use proper sorting to ensure consistent ordering across pages
-- Leverage the `Page.map()` method for transforming paginated results
+- Configure default and maximum page size in application.properties:
+  ```properties
+  spring.data.web.pageable.default-page-size=20
+  spring.data.web.pageable.max-page-size=100
+  ```
+- Use `@Transactional(readOnly = true)` for read operations
+- Return `Stream<T>` for non-paginated queries that may return many results
 
 For JSONB columns, you might want to add appropriate indexes:
 
 ```sql
+-- Index for filtering by operator (regular column)
+CREATE INDEX idx_device_reads_operator ON search (operator);
+
 -- Index for sorting by title field in JSONB
-CREATE INDEX idx_document_title ON document_documents ((data->'metadata'->>'title') ASC);
+CREATE INDEX idx_device_details_title ON search ((details->'ownership'->>'operator') ASC);
 
 -- Index for filtering by type in JSONB
-CREATE INDEX idx_document_type ON document_documents ((data->'metadata'->>'type'));
+CREATE INDEX idx_device_type ON search ((details->'metadata'->>'type'));
 
--- Index for text search on title
-CREATE INDEX idx_document_title_search ON document_documents USING gin ((data->'metadata'->>'title') gin_trgm_ops);
+-- Index for text search on title using pg_trgm extension
+CREATE INDEX idx_device_title_search ON search USING gin ((details->'metadata'->>'title') gin_trgm_ops);
 ```
 
 ## Logging Guidelines
 
 Proper logging is essential for monitoring, debugging, and understanding system behavior. Follow these guidelines to ensure consistent and useful logging across the application.
 
-### Controller Logging
+### Logging in Spring Boot
 
-Controllers should log incoming requests with method, path, parameters, and request data for debugging and monitoring purposes.
+Spring Boot uses SLF4J with Logback as the default logging framework. Use Lombok's `@Slf4j` annotation to add a logger to your classes.
 
 **How to implement:**
 
-```typescript
-@Controller()
-export class PlansController {
-    constructor(
-        private readonly planService: PlanService,
-        private readonly logger: LoggerService,
-    ) {}
+```java
+@RestController
+@RequiredArgsConstructor
+@Slf4j
+class InstallationController {
 
-    @Put(':analysisId')
-    async updatePlan(
-        @Param('analysisId') analysisId: string,
-        @Body() request: UpdatePlanDto,
-        @UserId() userId: string,
-    ): Promise<PlanDto> {
-        this.logger.log(`PUT /plans/${analysisId}`, request);
+    private final InstallationService service;
 
-        const plan = await this.planService.updatePlan(analysisId, request);
+    @PatchMapping(path = "/installations/{orderId}",
+            consumes = APPLICATION_JSON_VALUE,
+            produces = APPLICATION_JSON_VALUE)
+    InstallationProcessState patch(
+            @PathVariable String orderId,
+            @RequestBody @Valid ApplyStep step) {
+        log.info("PATCH /installations/{} with step: {}", orderId, step.getClass().getSimpleName());
 
-        if (!plan) {
-            throw new NotFoundException('Plan not found');
-        }
-
-        return plan;
+        return service.applyStep(orderId, step)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Work order not found"));
     }
 }
 ```
 
-**Best practices:**
+**Best practices for controller logging:**
 
-- Log HTTP method, path, and request parameters
-- Include request body for debugging purposes
-- Use consistent format: `METHOD /path/params`, request
-- Log at the beginning of controller methods
+- Use `@Slf4j` annotation from Lombok to add logger
+- Log HTTP method, path, and key request parameters
+- Use parameterized logging (e.g., `log.info("message: {}", value)`) for better performance
+- Log at INFO level for normal operations
+- Don't log full request body unless necessary for debugging
 
 ### Event Handler Logging
 
-Event handlers with `@OnEvent` decorators should log the event name, payload, and the action being performed. Never throw exceptions from event handlers - always log errors instead.
+Event handlers with `@EventListener` should log the event being processed. Handle exceptions gracefully within event handlers.
 
 **How to implement:**
 
-```typescript
-@Injectable()
-export class PlanService {
-    constructor(
-        private readonly repository: PlanRepository,
-        private readonly logger: LoggerService,
-    ) {}
+```java
+@Service
+@Transactional
+@RequiredArgsConstructor
+@Slf4j
+public class InstallationService {
 
-    @OnEvent('AnalysisComplete')
-    async handleAnalysisComplete(
-        payload: AnalysisCompleteEvent,
-    ): Promise<void> {
-        this.logger.log(`handle AnalysisComplete: creating new plan`, payload);
+    private final InstallationRepository repository;
+
+    @EventListener
+    public void handle(DeviceBootedEvent event) {
+        log.info("Handling DeviceBootedEvent for device: {}", event.deviceId());
 
         try {
-            const plan = PlanEditor.createNew(
-                payload.analysisId,
-                payload.tenantId,
-                payload.data,
-            );
-
-            await this.repository.save(plan);
-
-            this.logger.log(
-                `Successfully created plan for analysis ${payload.analysisId}`,
-            );
-        } catch (error) {
-            this.logger.error(
-                `Failed to handle analysis complete event for plan: ${error.message}`,
-                error.stack,
-            );
-            // Never throw exceptions from event handlers
+            repository.findByDeviceId(event.deviceId())
+                    .ifPresent(installation -> {
+                        installation.markAsBooted();
+                        repository.save(installation);
+                        log.info("Successfully marked installation {} as booted",
+                                installation.getOrderId());
+                    });
+        } catch (Exception e) {
+            log.error("Failed to handle DeviceBootedEvent for device {}: {}",
+                    event.deviceId(), e.getMessage(), e);
+            // Event handlers should not re-throw exceptions
         }
     }
 }
 ```
 
-**Best practices:**
+**Best practices for event handler logging:**
 
-- Log event name and payload at the beginning of event handlers
-- Describe the action being performed in the log message
-- Always wrap event handler logic in try-catch blocks
-- Log errors with full stack trace but never re-throw exceptions
-- Log successful completion of event processing
+- Log event name and key identifiers at the beginning
+- Use try-catch blocks to prevent exceptions from propagating
+- Log errors with stack trace using `log.error("message", exception)`
+- Never re-throw exceptions from event handlers
+- Log successful completion for important operations
 
 ### Error Logging Guidelines
 
@@ -1439,150 +1535,160 @@ export class PlanService {
 **When NOT to log errors:**
 
 - Don't log errors if you're going to re-throw the same exception
-- Don't log routine error conditions that are handled gracefully
+- Don't log routine error conditions that are handled gracefully (like Optional.empty())
 - Don't log errors just before throwing them
 
 **Example of proper error handling:**
 
-```typescript
+```java
 // Good: Log error and handle gracefully
-async processData(data: any): Promise<Result> {
+public Result processData(Data data) {
     try {
-        return await this.validateAndProcess(data);
-    } catch (error) {
-        this.logger.error(`Failed to process data: ${error.message}`, error.stack);
-        return Result.failure('Processing failed');
+        return validateAndProcess(data);
+    } catch (Exception e) {
+        log.error("Failed to process data: {}", e.getMessage(), e);
+        return Result.failure("Processing failed");
     }
 }
 
 // Bad: Logging normal behaviour expressed in return signature
-async findUser(id: string): Promise<User | null> {
-    const user = await this.repository.findById(id);
+public Optional<User> findUser(String id) {
+    Optional<User> user = repository.findById(id);
 
-    if (!user) {
-        this.logger.warn(`User not found: ${id} - returning null`);
-        return null;
+    if (user.isEmpty()) {
+        log.warn("User not found: {} - returning empty", id); // Don't log
+        return Optional.empty();
     }
 
     return user;
 }
 
 // Bad: Logging before re-throwing
-async processData(data: any): Promise<void> {
+public void processData(Data data) {
     try {
-        await this.validateAndProcess(data);
-    } catch (error) {
-        this.logger.error(`Failed to process data: ${error.message}`); // Don't log if re-throwing
-        throw error; // Re-throwing the same exception
+        validateAndProcess(data);
+    } catch (Exception e) {
+        log.error("Failed to process data: {}", e.getMessage()); // Don't log if re-throwing
+        throw e; // Re-throwing the same exception
     }
 }
 ```
 
 ### General Logging Best Practices
 
+- **Use `@Slf4j` from Lombok** to add logger field automatically
 - **Don't log method entry/exit** unless there's a specific debugging need
 - **Log exceptional situations** that complete successfully but in an unusual way
 - **Use appropriate log levels:**
-    - `log()` for informational messages
-    - `warn()` for warning conditions
-    - `error()` for error conditions
+    - `log.debug()` for detailed debugging information
+    - `log.info()` for informational messages
+    - `log.warn()` for warning conditions
+    - `log.error()` for error conditions with stack trace
+- **Use parameterized logging** for better performance: `log.info("User {} logged in", userId)`
 - **Include relevant context** in log messages (IDs, parameters, etc.)
-- **Use consistent message formatting** across the application
-- **Avoid logging sensitive information** (passwords, tokens, etc.)
+- **Avoid logging sensitive information** (passwords, tokens, personal data)
 - **Log at the appropriate level** - don't log everything at error level
+- **Configure logging in application.properties:**
+  ```properties
+  logging.level.root=INFO
+  logging.level.devices.configuration=DEBUG
+  logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n
+  ```
 
-## Global Exception Filter
+## Global Exception Handling with @ControllerAdvice
 
-The Global Exception Filter is a centralized error handling mechanism that intercepts all unhandled exceptions thrown during HTTP request processing and transforms them into appropriate HTTP responses.
-
-### Configuration
-
-The Global Exception Filter is registered globally in the application setup:
-
-```typescript
-// src/setup.ts
-import { GlobalExceptionFilter } from './common/global-exception.filter';
-
-export function setup(app: INestApplication): void {
-    // Register global exception filter
-    app.useGlobalFilters(new GlobalExceptionFilter());
-
-    // ... other setup
-}
-```
+Spring Boot provides centralized exception handling through `@ControllerAdvice` and `@ExceptionHandler` annotations. This approach intercepts exceptions thrown during HTTP request processing and transforms them into appropriate HTTP responses.
 
 ### Implementation
 
-```typescript
-// src/common/global-exception.filter.ts
-@Catch()
-export class GlobalExceptionFilter implements ExceptionFilter {
-    private readonly logger = new Logger(GlobalExceptionFilter.name);
+```java
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
 
-    catch(exception: unknown, host: ArgumentsHost) {
-        const ctx = host.switchToHttp();
-        const response = ctx.getResponse<Response>();
-        const request = ctx.getRequest<Request>();
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+            OptimisticLockingFailureException ex,
+            HttpServletRequest request) {
 
-        let status = HttpStatus.INTERNAL_SERVER_ERROR;
-        let message = 'Internal server error';
-        let retryAfter: number | undefined;
+        log.warn("Optimistic lock conflict on {}: {}", request.getRequestURI(), ex.getMessage());
 
-        // Handle OptimisticLockError - return 409 Conflict with Retry-After header
-        if (exception instanceof OptimisticLockError) {
-            status = HttpStatus.CONFLICT;
-            message = exception.message;
-            retryAfter = 1; // Retry after 1 second
-            this.logger.warn(`Optimistic lock conflict: ${exception.message}`, {
-                url: request.url,
-                method: request.method,
-                body: request.body,
-            });
-        }
-        // Handle CommandInvalidError - return 400 Bad Request
-        else if (exception instanceof CommandInvalidError) {
-            status = HttpStatus.BAD_REQUEST;
-            message = exception.message;
-            this.logger.warn(`Command invalid: ${exception.message}`, {
-                url: request.url,
-                method: request.method,
-                body: request.body,
-            });
-        }
-        // Handle HttpException (NestJS built-in exceptions)
-        else if (exception instanceof HttpException) {
-            status = exception.getStatus();
-            message = exception.message;
-        }
-        // Handle other errors
-        else {
-            this.logger.error('Unhandled exception', {
-                exception:
-                    exception instanceof Error
-                        ? exception.message
-                        : String(exception),
-                stack: exception instanceof Error ? exception.stack : undefined,
-                url: request.url,
-                method: request.method,
-                body: request.body,
-            });
-        }
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Resource was modified by another transaction. Please retry.",
+                Instant.now(),
+                request.getRequestURI()
+        );
 
-        const errorResponse = {
-            statusCode: status,
-            message,
-            timestamp: new Date().toISOString(),
-            path: request.url,
-        };
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .header("Retry-After", "1")
+                .body(error);
+    }
 
-        // Set Retry-After header for optimistic lock conflicts
-        if (retryAfter) {
-            response.setHeader('Retry-After', retryAfter);
-        }
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationErrors(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
 
-        response.status(status).json(errorResponse);
+        String message = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+
+        log.warn("Validation failed on {}: {}", request.getRequestURI(), message);
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation failed: " + message,
+                Instant.now(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(
+            ResponseStatusException ex,
+            HttpServletRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                ex.getStatusCode().value(),
+                ex.getReason() != null ? ex.getReason() : ex.getMessage(),
+                Instant.now(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(ex.getStatusCode()).body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(
+            Exception ex,
+            HttpServletRequest request) {
+
+        log.error("Unhandled exception on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal server error",
+                Instant.now(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
+
+// Error response DTO
+record ErrorResponse(
+        int statusCode,
+        String message,
+        Instant timestamp,
+        String path
+) {}
 ```
 
 ### Role and Responsibilities
@@ -1590,38 +1696,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 1. **Centralized Error Handling**: Catches all unhandled exceptions thrown during HTTP request processing
 2. **HTTP Status Code Mapping**: Maps different exception types to appropriate HTTP status codes
 3. **Consistent Error Response Format**: Ensures all error responses follow the same structure
-4. **Logging**: Logs errors with relevant context (URL, method, request body)
+4. **Logging**: Logs errors with relevant context (URL, message)
 5. **Special Headers**: Adds appropriate HTTP headers (e.g., Retry-After for optimistic lock conflicts)
 
 ### Supported Exception Types
 
-#### Domain Exceptions
+#### JPA and Validation Exceptions
 
-```typescript
-// src/common/errors.ts
-export class CommandInvalidError extends Error {
-    constructor(object: any) {
-        super(`Command invalid: ${JSON.stringify(object)}`);
-        this.name = 'CommandInvalidError';
-    }
-}
-
-export class OptimisticLockError extends Error {
-    constructor(object: any) {
-        super(
-            `Object was modified by another transaction: ${JSON.stringify(object)}`,
-        );
-        this.name = 'OptimisticLockError';
-    }
-}
-```
-
-#### Exception Handling Rules
-
-- **OptimisticLockError**: Returns HTTP 409 (Conflict) with Retry-After header
-- **CommandInvalidError**: Returns HTTP 400 (Bad Request)
-- **HttpException**: Returns the status code and message from the exception
-- **Other exceptions**: Returns HTTP 500 (Internal Server Error) with detailed logging
+- **OptimisticLockingFailureException**: Thrown by JPA when optimistic locking fails (version mismatch)
+  - Returns HTTP 409 (Conflict) with Retry-After header
+- **MethodArgumentNotValidException**: Thrown by Spring when `@Valid` validation fails
+  - Returns HTTP 400 (Bad Request) with validation error details
+- **ResponseStatusException**: Spring's built-in exception for HTTP errors
+  - Returns the specified status code and message
+- **Exception**: Catch-all for unhandled exceptions
+  - Returns HTTP 500 (Internal Server Error) with detailed logging
 
 ### Error Response Format
 
@@ -1630,17 +1719,549 @@ All error responses follow a consistent format:
 ```json
 {
     "statusCode": 400,
-    "message": "Command invalid: {\"field\":\"value\"}",
-    "timestamp": "2024-01-15T10:30:00.000Z",
-    "path": "/api/plans/123"
+    "message": "Validation failed: field: must not be null",
+    "timestamp": "2025-01-15T10:30:00.000Z",
+    "path": "/api/devices/123"
 }
 ```
 
 ### Best Practices
 
-- **Don't log exceptions in controllers** - the global filter handles logging
-- **Throw domain exceptions** instead of HTTP exceptions in business logic
-- **Use appropriate exception types** for different error scenarios
+- **Use `@RestControllerAdvice`** for automatic JSON serialization of error responses
+- **Don't log exceptions in controllers** - the global handler handles logging
+- **Use `ResponseStatusException`** for simple HTTP errors in controllers:
+  `service.findDevice(deviceId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND))`
+- **Let JPA handle optimistic locking** - no need to manually check versions
+- **Use `@Valid` for request validation** - exceptions are automatically handled
 - **Keep exception messages user-friendly** but informative
-- **Include relevant context** in exception constructors
 - **Test exception scenarios** to ensure proper HTTP status codes and responses
+
+---
+
+## Quick Reference for AI Code Generation
+
+### When Creating a New Aggregate
+
+```java
+// 1. Define value objects first (public records)
+public record Ownership(String operator, String provider) {
+    public static Ownership unowned() { return new Ownership(null, null); }
+    public boolean isUnowned() { return operator == null && provider == null; }
+}
+
+// 2. Define domain events (public sealed interface + records)
+public sealed interface DomainEvent permits OwnershipUpdated {
+    String aggregateId();
+}
+public record OwnershipUpdated(String deviceId, Ownership ownership) implements DomainEvent {
+    @Override public String aggregateId() { return deviceId; }
+}
+
+// 3. Create aggregate (package-private class)
+@AllArgsConstructor
+class Device {
+    final String deviceId;
+    final List<DomainEvent> events;
+    private Ownership ownership;
+
+    static Device newDevice(String deviceId) {
+        return new Device(deviceId, new ArrayList<>(), Ownership.unowned());
+    }
+
+    void assignTo(Ownership ownership) {
+        if (!Objects.equals(this.ownership, ownership)) {
+            this.ownership = ownership;
+            events.add(new OwnershipUpdated(deviceId, ownership));
+        }
+    }
+
+    DeviceSnapshot toSnapshot() {
+        return new DeviceSnapshot(deviceId, ownership);
+    }
+}
+
+// 4. Create immutable snapshot (public record)
+public record DeviceSnapshot(String deviceId, Ownership ownership) {}
+```
+
+### When Creating a Repository
+
+```java
+// 1. Define port (package-private interface)
+interface DeviceRepository {
+    Optional<Device> get(String deviceId);
+    void save(Device device);
+}
+
+// 2. Implement adapter (package-private class)
+@Repository
+@AllArgsConstructor
+class DeviceDocumentRepository implements DeviceRepository {
+    private final JpaRepo jpaRepo;
+    private final ApplicationEventPublisher publisher;
+
+    @Override
+    public Optional<Device> get(String deviceId) {
+        return jpaRepo.findById(deviceId).map(DeviceEntity::toDevice);
+    }
+
+    @Override
+    public void save(Device device) {
+        List<DomainEvent> events = List.copyOf(device.events);
+        device.events.clear();
+
+        jpaRepo.save(new DeviceEntity(device));
+        events.forEach(publisher::publishEvent);
+    }
+
+    @Repository
+    interface JpaRepo extends JpaRepository<DeviceEntity, String> {}
+
+    @Entity
+    @Table(name = "device_document")
+    @NoArgsConstructor
+    static class DeviceEntity {
+        @Id private String deviceId;
+        @Version private long version;
+        @Type(JsonBinaryType.class) private Device device;
+
+        DeviceEntity(Device device) {
+            this.deviceId = device.deviceId;
+            this.device = device;
+        }
+
+        Device toDevice() { return device; }
+    }
+}
+```
+
+### When Creating a Service (Primary Port)
+
+```java
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class DeviceService {
+    private final DeviceRepository repository;
+
+    @Transactional(readOnly = true)
+    public Optional<DeviceSnapshot> getDevice(String deviceId) {
+        return repository.get(deviceId).map(Device::toSnapshot);
+    }
+
+    public DeviceSnapshot createDevice(String deviceId, Ownership ownership) {
+        Device device = Device.newDevice(deviceId);
+        device.assignTo(ownership);
+        repository.save(device);
+        return device.toSnapshot();
+    }
+
+    public Optional<DeviceSnapshot> updateDevice(String deviceId, Ownership ownership) {
+        return repository.get(deviceId).map(device -> {
+            device.assignTo(ownership);
+            repository.save(device);
+            return device.toSnapshot();
+        });
+    }
+}
+```
+
+### When Creating a Controller (Primary Port Adapter)
+
+```java
+@RestController
+@RequiredArgsConstructor
+class DeviceController {
+    private final DeviceService service;
+
+    @GetMapping("/devices/{deviceId}")
+    DeviceSnapshot get(@PathVariable String deviceId) {
+        return service.getDevice(deviceId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @PutMapping("/devices/{deviceId}")
+    DeviceSnapshot create(@PathVariable String deviceId,
+                         @RequestBody @Valid OwnershipRequest request) {
+        return service.createDevice(deviceId, request.toOwnership());
+    }
+
+    @PatchMapping("/devices/{deviceId}")
+    DeviceSnapshot update(@PathVariable String deviceId,
+                         @RequestBody @Valid OwnershipRequest request) {
+        return service.updateDevice(deviceId, request.toOwnership())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+}
+
+record OwnershipRequest(@NotBlank String operator, @NotBlank String provider) {
+    Ownership toOwnership() { return new Ownership(operator, provider); }
+}
+```
+
+### Common Annotations Cheat Sheet
+
+| Component | Visibility | Annotations |
+|-----------|-----------|-------------|
+| Aggregate | package-private | `@AllArgsConstructor` |
+| Value Object | public | `record` keyword, `@JsonIgnore` for derived fields |
+| Domain Event | public | `record` keyword, `sealed interface` |
+| Service | public | `@Service`, `@Transactional`, `@RequiredArgsConstructor` |
+| Controller | package-private | `@RestController`, `@RequiredArgsConstructor` |
+| Repository Port | package-private | `interface` (no annotations) |
+| Repository Adapter | package-private | `@Repository`, `@AllArgsConstructor` |
+| JPA Entity | static nested, package-private | `@Entity`, `@Table`, `@NoArgsConstructor` |
+| External Adapter | package-private | `@Component`, `@RequiredArgsConstructor` |
+
+### Liquibase Changelog Template
+
+```yaml
+databaseChangeLog:
+  - changeSet:
+      id: <generate-uuid>  # Use UUID generator
+      author: <your-name>
+      changes:
+        - createTable:
+            tableName: <table_name>
+            columns:
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: int
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data
+                  type: jsonb
+                  constraints:
+                    nullable: false
+```
+
+### Testing Template
+
+```java
+// Unit test for aggregate
+class DeviceTest {
+    @Test
+    void shouldEmitEventWhenStateChanges() {
+        Device device = Device.newDevice("device-1");
+        device.assignTo(Ownership.of("op1", "prov1"));
+
+        assertThat(device.events).hasSize(1);
+        assertThat(device.events.get(0)).isInstanceOf(OwnershipUpdated.class);
+    }
+}
+
+// Integration test for repository
+@SpringBootTest
+@Testcontainers
+@AutoConfigureTestDatabase(replace = NONE)
+class DeviceRepositoryTest {
+    @Container
+    static PostgreSQLContainer<?> postgres =
+        new PostgreSQLContainer<>("postgres:17.5-alpine");
+
+    @DynamicPropertySource
+    static void props(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+    }
+
+    @Autowired DeviceRepository repository;
+
+    @Test
+    void shouldSaveAndRetrieve() {
+        Device device = Device.newDevice("test-1");
+        repository.save(device);
+
+        Optional<Device> retrieved = repository.get("test-1");
+        assertThat(retrieved).isPresent();
+    }
+}
+```
+
+---
+
+## Summary
+
+This document defines the architectural patterns and implementation guidelines for building modular, maintainable Java Spring Boot applications using Domain-Driven Design and Hexagonal Architecture. Key takeaways:
+
+1. **Aggregates** encapsulate business logic and are package-private
+2. **Value Objects** are immutable records representing domain concepts
+3. **Services** coordinate aggregates and manage their lifecycle
+4. **Controllers** are thin adapters that delegate to services
+5. **Repositories** use JPA with JSONB for aggregate storage
+6. **Events** communicate state changes between modules
+7. **Tests** cover unit (aggregates), integration (repositories), and e2e (full flows)
+
+Follow the Implementation Workflow section when adding new features. Refer to the Quick Reference section for code templates.
+
+---
+
+## Quick Reference for AI Code Generation
+
+### When Creating a New Aggregate
+
+```java
+// 1. Define value objects first (public records)
+public record Ownership(String operator, String provider) {
+    public static Ownership unowned() { return new Ownership(null, null); }
+    public boolean isUnowned() { return operator == null && provider == null; }
+}
+
+// 2. Define domain events (public sealed interface + records)
+public sealed interface DomainEvent permits OwnershipUpdated {
+    String aggregateId();
+}
+public record OwnershipUpdated(String deviceId, Ownership ownership) implements DomainEvent {
+    @Override public String aggregateId() { return deviceId; }
+}
+
+// 3. Create aggregate (package-private class)
+@AllArgsConstructor
+class Device {
+    final String deviceId;
+    final List<DomainEvent> events;
+    private Ownership ownership;
+
+    static Device newDevice(String deviceId) {
+        return new Device(deviceId, new ArrayList<>(), Ownership.unowned());
+    }
+
+    void assignTo(Ownership ownership) {
+        if (!Objects.equals(this.ownership, ownership)) {
+            this.ownership = ownership;
+            events.add(new OwnershipUpdated(deviceId, ownership));
+        }
+    }
+
+    DeviceSnapshot toSnapshot() {
+        return new DeviceSnapshot(deviceId, ownership);
+    }
+}
+
+// 4. Create immutable snapshot (public record)
+public record DeviceSnapshot(String deviceId, Ownership ownership) {}
+```
+
+### When Creating a Repository
+
+```java
+// 1. Define port (package-private interface)
+interface DeviceRepository {
+    Optional<Device> get(String deviceId);
+    void save(Device device);
+}
+
+// 2. Implement adapter (package-private class)
+@Repository
+@AllArgsConstructor
+class DeviceDocumentRepository implements DeviceRepository {
+    private final JpaRepo jpaRepo;
+    private final ApplicationEventPublisher publisher;
+
+    @Override
+    public Optional<Device> get(String deviceId) {
+        return jpaRepo.findById(deviceId).map(DeviceEntity::toDevice);
+    }
+
+    @Override
+    public void save(Device device) {
+        List<DomainEvent> events = List.copyOf(device.events);
+        device.events.clear();
+
+        jpaRepo.save(new DeviceEntity(device));
+        events.forEach(publisher::publishEvent);
+    }
+
+    @Repository
+    interface JpaRepo extends JpaRepository<DeviceEntity, String> {}
+
+    @Entity
+    @Table(name = "device_document")
+    @NoArgsConstructor
+    static class DeviceEntity {
+        @Id private String deviceId;
+        @Version private long version;
+        @Type(JsonBinaryType.class) private Device device;
+
+        DeviceEntity(Device device) {
+            this.deviceId = device.deviceId;
+            this.device = device;
+        }
+
+        Device toDevice() { return device; }
+    }
+}
+```
+
+### When Creating a Service (Primary Port)
+
+```java
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class DeviceService {
+    private final DeviceRepository repository;
+
+    @Transactional(readOnly = true)
+    public Optional<DeviceSnapshot> getDevice(String deviceId) {
+        return repository.get(deviceId).map(Device::toSnapshot);
+    }
+
+    public DeviceSnapshot createDevice(String deviceId, Ownership ownership) {
+        Device device = Device.newDevice(deviceId);
+        device.assignTo(ownership);
+        repository.save(device);
+        return device.toSnapshot();
+    }
+
+    public Optional<DeviceSnapshot> updateDevice(String deviceId, Ownership ownership) {
+        return repository.get(deviceId).map(device -> {
+            device.assignTo(ownership);
+            repository.save(device);
+            return device.toSnapshot();
+        });
+    }
+}
+```
+
+### When Creating a Controller (Primary Port Adapter)
+
+```java
+@RestController
+@RequiredArgsConstructor
+class DeviceController {
+    private final DeviceService service;
+
+    @GetMapping("/devices/{deviceId}")
+    DeviceSnapshot get(@PathVariable String deviceId) {
+        return service.getDevice(deviceId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @PutMapping("/devices/{deviceId}")
+    DeviceSnapshot create(@PathVariable String deviceId,
+                         @RequestBody @Valid OwnershipRequest request) {
+        return service.createDevice(deviceId, request.toOwnership());
+    }
+
+    @PatchMapping("/devices/{deviceId}")
+    DeviceSnapshot update(@PathVariable String deviceId,
+                         @RequestBody @Valid OwnershipRequest request) {
+        return service.updateDevice(deviceId, request.toOwnership())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+}
+
+record OwnershipRequest(@NotBlank String operator, @NotBlank String provider) {
+    Ownership toOwnership() { return new Ownership(operator, provider); }
+}
+```
+
+### Common Annotations Cheat Sheet
+
+| Component | Visibility | Annotations |
+|-----------|-----------|-------------|
+| Aggregate | package-private | `@AllArgsConstructor` |
+| Value Object | public | `record` keyword, `@JsonIgnore` for derived fields |
+| Domain Event | public | `record` keyword, `sealed interface` |
+| Service | public | `@Service`, `@Transactional`, `@RequiredArgsConstructor` |
+| Controller | package-private | `@RestController`, `@RequiredArgsConstructor` |
+| Repository Port | package-private | `interface` (no annotations) |
+| Repository Adapter | package-private | `@Repository`, `@AllArgsConstructor` |
+| JPA Entity | static nested, package-private | `@Entity`, `@Table`, `@NoArgsConstructor` |
+| External Adapter | package-private | `@Component`, `@RequiredArgsConstructor` |
+
+### Liquibase Changelog Template
+
+```yaml
+databaseChangeLog:
+  - changeSet:
+      id: <generate-uuid>  # Use UUID generator
+      author: <your-name>
+      changes:
+        - createTable:
+            tableName: <table_name>
+            columns:
+              - column:
+                  name: id
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: int
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data
+                  type: jsonb
+                  constraints:
+                    nullable: false
+```
+
+### Testing Template
+
+```java
+// Unit test for aggregate
+class DeviceTest {
+    @Test
+    void shouldEmitEventWhenStateChanges() {
+        Device device = Device.newDevice("device-1");
+        device.assignTo(Ownership.of("op1", "prov1"));
+
+        assertThat(device.events).hasSize(1);
+        assertThat(device.events.get(0)).isInstanceOf(OwnershipUpdated.class);
+    }
+}
+
+// Integration test for repository
+@SpringBootTest
+@Testcontainers
+@AutoConfigureTestDatabase(replace = NONE)
+class DeviceRepositoryTest {
+    @Container
+    static PostgreSQLContainer<?> postgres =
+        new PostgreSQLContainer<>("postgres:17.5-alpine");
+
+    @DynamicPropertySource
+    static void props(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+    }
+
+    @Autowired DeviceRepository repository;
+
+    @Test
+    void shouldSaveAndRetrieve() {
+        Device device = Device.newDevice("test-1");
+        repository.save(device);
+
+        Optional<Device> retrieved = repository.get("test-1");
+        assertThat(retrieved).isPresent();
+    }
+}
+```
+
+---
+
+## Summary
+
+This document defines the architectural patterns and implementation guidelines for building modular, maintainable Java Spring Boot applications using Domain-Driven Design and Hexagonal Architecture. Key takeaways:
+
+1. **Aggregates** encapsulate business logic and are package-private
+2. **Value Objects** are immutable records representing domain concepts
+3. **Services** coordinate aggregates and manage their lifecycle
+4. **Controllers** are thin adapters that delegate to services
+5. **Repositories** use JPA with JSONB for aggregate storage
+6. **Events** communicate state changes between modules
+7. **Tests** cover unit (aggregates), integration (repositories), and e2e (full flows)
+
+Follow the Implementation Workflow section when adding new features. Refer to the Quick Reference section for code templates.
