@@ -222,4 +222,139 @@ class DeviceConfigurationTest {
         // Then
         assertThat(device.toSnapshot().location()).isNull();
     }
+
+    @Test
+    void shouldDetectOperatorNotAssigned() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        // Device starts with unowned ownership
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.operatorNotAssigned()).isTrue();
+        assertThat(violations.isValid()).isFalse();
+    }
+
+    @Test
+    void shouldDetectProviderNotAssigned() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        // Device starts with unowned ownership
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.providerNotAssigned()).isTrue();
+        assertThat(violations.isValid()).isFalse();
+    }
+
+    @Test
+    void shouldDetectLocationMissing() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.locationMissing()).isTrue();
+        assertThat(violations.isValid()).isFalse();
+    }
+
+    @Test
+    void shouldDetectShowOnMapButMissingLocation() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeSettings(Settings.of(false, false, false, false, true, true));
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.showOnMapButMissingLocation()).isTrue();
+        assertThat(violations.isValid()).isFalse();
+    }
+
+    @Test
+    void shouldDetectShowOnMapButNoPublicAccess() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeOwnership(Ownership.of("Devicex.nl", "public-devices"));
+        device.changeLocation(Location.of(
+                "Rakietowa", "1A", "Wrocław", "54-621", null, "POL",
+                Coordinates.of(16.931752852309156, 51.09836221719513)
+        ));
+        device.changeSettings(Settings.of(false, false, false, false, true, false));
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.showOnMapButNoPublicAccess()).isTrue();
+        assertThat(violations.isValid()).isFalse();
+    }
+
+    @Test
+    void shouldHaveNoViolationsWhenFullyConfigured() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeOwnership(Ownership.of("Devicex.nl", "public-devices"));
+        device.changeLocation(Location.of(
+                "Rakietowa", "1A", "Wrocław", "54-621", null, "POL",
+                Coordinates.of(16.931752852309156, 51.09836221719513)
+        ));
+        device.changeSettings(Settings.of(true, true, true, true, true, true));
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.operatorNotAssigned()).isFalse();
+        assertThat(violations.providerNotAssigned()).isFalse();
+        assertThat(violations.locationMissing()).isFalse();
+        assertThat(violations.showOnMapButMissingLocation()).isFalse();
+        assertThat(violations.showOnMapButNoPublicAccess()).isFalse();
+        assertThat(violations.isValid()).isTrue();
+    }
+
+    @Test
+    void shouldHaveNoViolationsWhenNotShowingOnMap() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeOwnership(Ownership.of("Devicex.nl", "public-devices"));
+        device.changeLocation(Location.of(
+                "Rakietowa", "1A", "Wrocław", "54-621", null, "POL",
+                Coordinates.of(16.931752852309156, 51.09836221719513)
+        ));
+        device.changeSettings(Settings.of(true, true, true, true, false, false));
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.showOnMapButMissingLocation()).isFalse();
+        assertThat(violations.showOnMapButNoPublicAccess()).isFalse();
+        assertThat(violations.isValid()).isTrue();
+    }
+
+    @Test
+    void shouldDetectMultipleViolations() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeSettings(Settings.of(false, false, false, false, true, false));
+
+        // When
+        Violations violations = device.toSnapshot().violations();
+
+        // Then
+        assertThat(violations.operatorNotAssigned()).isTrue();
+        assertThat(violations.providerNotAssigned()).isTrue();
+        assertThat(violations.locationMissing()).isTrue();
+        assertThat(violations.showOnMapButMissingLocation()).isTrue();
+        assertThat(violations.showOnMapButNoPublicAccess()).isTrue();
+        assertThat(violations.isValid()).isFalse();
+    }
 }

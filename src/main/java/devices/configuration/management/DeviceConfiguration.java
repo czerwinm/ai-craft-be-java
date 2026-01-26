@@ -76,13 +76,24 @@ class DeviceConfiguration {
         changeSettings(Settings.defaultSettings());
     }
 
+    private Violations checkViolations() {
+        return Violations.builder()
+                .operatorNotAssigned(ownership.isUnowned())
+                .providerNotAssigned(ownership.isUnowned())
+                .locationMissing(location == null)
+                .showOnMapButMissingLocation(settings.showOnMap() && location == null)
+                .showOnMapButNoPublicAccess(settings.showOnMap() && !settings.publicAccess())
+                .build();
+    }
+
     DeviceConfigurationSnapshot toSnapshot() {
         return new DeviceConfigurationSnapshot(
                 deviceId,
                 ownership,
                 location,
                 openingHours,
-                settings
+                settings,
+                checkViolations()
         );
     }
 }

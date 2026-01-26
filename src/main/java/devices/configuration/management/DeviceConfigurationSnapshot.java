@@ -5,6 +5,7 @@ public record DeviceConfigurationSnapshot(
         Ownership ownership,
         Location location,
         OpeningHours openingHours,
-        Settings settings
+        Settings settings,
+        Violations violations
 ) {
 }
