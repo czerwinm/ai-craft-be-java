@@ -6,6 +6,7 @@ public record DeviceConfigurationSnapshot(
         Location location,
         OpeningHours openingHours,
         Settings settings,
-        Violations violations
+        Violations violations,
+        Visibility visibility
 ) {
 }

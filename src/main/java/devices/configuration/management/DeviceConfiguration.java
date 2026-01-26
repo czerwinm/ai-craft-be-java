@@ -86,14 +86,22 @@ class DeviceConfiguration {
                 .build();
     }
 
+    private Visibility calculateVisibility() {
+        Violations violations = checkViolations();
+        return Visibility.calculateFrom(violations, settings.publicAccess(), settings.showOnMap());
+    }
+
     DeviceConfigurationSnapshot toSnapshot() {
+        Violations violations = checkViolations();
+        Visibility visibility = Visibility.calculateFrom(violations, settings.publicAccess(), settings.showOnMap());
         return new DeviceConfigurationSnapshot(
                 deviceId,
                 ownership,
                 location,
                 openingHours,
                 settings,
-                checkViolations()
+                violations,
+                visibility
         );
     }
 }

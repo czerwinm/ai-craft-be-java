@@ -321,6 +321,83 @@ class DeviceConfigurationTest {
     }
 
     @Test
+    void shouldCalculateVisibilityAsUsableAndVisibleOnMapWhenFullyConfigured() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeOwnership(Ownership.of("Devicex.nl", "public-devices"));
+        device.changeLocation(Location.of(
+                "Rakietowa", "1A", "Wrocław", "54-621", null, "POL",
+                Coordinates.of(16.931752852309156, 51.09836221719513)
+        ));
+        device.changeSettings(Settings.of(true, true, true, true, true, true));
+
+        // When
+        Visibility visibility = device.toSnapshot().visibility();
+
+        // Then
+        assertThat(visibility.forCustomer()).isEqualTo(Visibility.ForCustomer.USABLE_AND_VISIBLE_ON_MAP);
+        assertThat(visibility.roamingEnabled()).isTrue();
+        assertThat(visibility.isUsable()).isTrue();
+        assertThat(visibility.isVisibleOnMap()).isTrue();
+    }
+
+    @Test
+    void shouldCalculateVisibilityAsInaccessibleWhenViolationsExist() {
+        // Given - device with violations
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        // Device has unowned ownership, missing location, etc.
+
+        // When
+        Visibility visibility = device.toSnapshot().visibility();
+
+        // Then
+        assertThat(visibility.forCustomer()).isEqualTo(Visibility.ForCustomer.INACCESSIBLE_AND_HIDDEN_ON_MAP);
+        assertThat(visibility.roamingEnabled()).isFalse();
+        assertThat(visibility.isInaccessible()).isTrue();
+    }
+
+    @Test
+    void shouldCalculateVisibilityAsUsableButHiddenWhenNotShowingOnMap() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeOwnership(Ownership.of("Devicex.nl", "public-devices"));
+        device.changeLocation(Location.of(
+                "Rakietowa", "1A", "Wrocław", "54-621", null, "POL",
+                Coordinates.of(16.931752852309156, 51.09836221719513)
+        ));
+        device.changeSettings(Settings.of(true, true, true, true, false, true)); // showOnMap = false
+
+        // When
+        Visibility visibility = device.toSnapshot().visibility();
+
+        // Then
+        assertThat(visibility.forCustomer()).isEqualTo(Visibility.ForCustomer.USABLE_BUT_HIDDEN_ON_MAP);
+        assertThat(visibility.roamingEnabled()).isTrue();
+        assertThat(visibility.isUsable()).isTrue();
+        assertThat(visibility.isVisibleOnMap()).isFalse();
+    }
+
+    @Test
+    void shouldCalculateVisibilityAsInaccessibleWhenNoPublicAccess() {
+        // Given
+        DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
+        device.changeOwnership(Ownership.of("Devicex.nl", "public-devices"));
+        device.changeLocation(Location.of(
+                "Rakietowa", "1A", "Wrocław", "54-621", null, "POL",
+                Coordinates.of(16.931752852309156, 51.09836221719513)
+        ));
+        device.changeSettings(Settings.of(true, true, true, true, true, false)); // publicAccess = false
+
+        // When
+        Visibility visibility = device.toSnapshot().visibility();
+
+        // Then
+        assertThat(visibility.forCustomer()).isEqualTo(Visibility.ForCustomer.INACCESSIBLE_AND_HIDDEN_ON_MAP);
+        assertThat(visibility.roamingEnabled()).isFalse();
+        assertThat(visibility.isInaccessible()).isTrue();
+    }
+
+    @Test
     void shouldHaveNoViolationsWhenNotShowingOnMap() {
         // Given
         DeviceConfiguration device = DeviceConfiguration.newDevice("ALF-98262561");
