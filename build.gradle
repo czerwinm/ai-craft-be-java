@@ -90,7 +90,9 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 0.0
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.85
             }
         }
     }
