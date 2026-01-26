@@ -1,0 +1,91 @@
+### Get device configuration
+GET http://localhost:8080/devices/DEV-123456
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+### Update device ownership
+PATCH http://localhost:8080/devices/DEV-123456
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "ownership": {
+    "operator": "Devicex.nl",
+    "provider": "public-devices"
+  }
+}
+
+### Set device UNOWNED
+PATCH http://localhost:8080/devices/DEV-123456
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "ownership": {
+    "operator": null,
+    "provider": null
+  }
+}
+
+### Update device location
+PATCH http://localhost:8080/devices/DEV-123456
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "location": {
+    "street": "Rakietowa",
+    "houseNumber": "1A",
+    "city": "Wrocław",
+    "postalCode": "54-621",
+    "country": "POL",
+    "coordinates": {
+      "longitude": 16.931752852309156,
+      "latitude": 51.09836221719513
+    }
+  }
+}
+
+### Update device settings partially
+PATCH http://localhost:8080/devices/DEV-123456
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "settings": {
+    "showOnMap": true,
+    "publicAccess": true
+  }
+}
+
+### Update multiple fields at once
+PATCH http://localhost:8080/devices/DEV-123456
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "ownership": {
+    "operator": "Devicex.nl",
+    "provider": "public-devices"
+  },
+  "location": {
+    "street": "Rakietowa",
+    "houseNumber": "2A",
+    "city": "Wrocław",
+    "postalCode": "54-621",
+    "country": "POL",
+    "coordinates": {
+      "longitude": 16.931752852309156,
+      "latitude": 51.09836221719513
+    }
+  },
+  "settings": {
+    "showOnMap": true,
+    "publicAccess": true
+  }
+}

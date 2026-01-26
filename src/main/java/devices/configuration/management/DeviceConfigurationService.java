@@ -82,4 +82,20 @@ public class DeviceConfigurationService {
                 .map(VersionedDevice::device)
                 .map(DeviceConfiguration::toSnapshot);
     }
+
+    public DeviceConfigurationSnapshot patchDevice(String deviceId, DeviceConfigurationPatch patch, long version) {
+        VersionedDevice versioned = repository.findById(deviceId)
+                .orElseThrow(() -> new DeviceNotFoundException(deviceId));
+        DeviceConfiguration device = versioned.device();
+        DeviceConfigurationSnapshot currentSnapshot = device.toSnapshot();
+        patch.applyTo(device, currentSnapshot);
+        repository.save(device, version);
+        return device.toSnapshot();
+    }
+
+    public long getCurrentVersion(String deviceId) {
+        return repository.findById(deviceId)
+                .map(VersionedDevice::version)
+                .orElseThrow(() -> new DeviceNotFoundException(deviceId));
+    }
 }
