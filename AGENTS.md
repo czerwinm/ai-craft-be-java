@@ -15,25 +15,6 @@
 5. **Event-Driven**: Emit domain events to communicate state changes
 6. **Package-Private by Default**: Expose only what's necessary; keep implementation details hidden
 
-## Code Style
-
-1. **No Blank Lines Inside Method Bodies**: Do not add empty lines within function/method bodies. Keep method implementation compact and readable without internal blank lines.
-2. **Blank Lines Between Methods**: Use single blank line to separate methods, classes, and logical code blocks at the class level.
-3. **Consistent Formatting**: Follow existing code style in the project.
-
-## Document Structure
-
-The documentation is organized into focused documents covering specific aspects of the architecture:
-
--   **@src/docs/domain-model.md**: Domain-Driven Design patterns (Aggregates, Value Objects, Domain Events) and Unit Testing - when developing business logic, always reference and follow the @src/docs/domain-model.md documentation
--   **@src/docs/ports.md**: Primary Port and Secondary Ports definitions - when implementing service layer or defining repository interfaces, reference @src/docs/ports.md
--   **@src/docs/adapter-http.md**: HTTP Adapter (API Controllers) - when implementing REST API endpoints, reference @src/docs/adapter-http.md
--   **@src/docs/adapter-kafka.md**: Message Queue and Message Broker Adapters - when integrating with Kafka or other message brokers, reference @src/docs/adapter-kafka.md
--   **@src/docs/adapter-scheduler.md**: Scheduled Jobs Adapter - when implementing scheduled tasks, reference @src/docs/adapter-scheduler.md
--   **@src/docs/adapter-persistence.md**: Persistence Adapter and Testing Adapters - when implementing JPA repositories or testing adapters, reference @src/docs/adapter-persistence.md
--   **@src/docs/adapter-rest-client.md**: External System Adapter - when integrating with external REST APIs, reference @src/docs/adapter-rest-client.md
--   **@src/docs/e2e-test.md**: End-to-End Testing - when writing e2e tests, reference @src/docs/e2e-test.md
-
 
 ## Example Structure of a Module with Domain-Driven Design, Ports and Adapters, and Tests
 
