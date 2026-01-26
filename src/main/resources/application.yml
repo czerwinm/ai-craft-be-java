@@ -70,3 +70,23 @@ logging.level:
   org.apache.kafka.clients.admin.AdminClientConfig: INFO
   org.apache.kafka.common.utils.AppInfoParser: INFO
   org.apache.kafka.streams.StreamsConfig: INFO
+
+intervals:
+  device-id-rules:
+    - interval: 600s
+      device-ids:
+        - EVB-P4562137
+        - ALF-9571445
+    - interval: 2700s
+      device-ids:
+        - t53_8264_019
+        - EVB-P15079256
+  model-rules:
+    - interval: 60s
+      vendor: Alfen BV
+      model-regex: NG920-5250[6-9]
+    - interval: 120s
+      vendor: ChargeStorm AB
+      model-regex: Chargestorm Connected
+  default-rule:
+    interval: 1800s
