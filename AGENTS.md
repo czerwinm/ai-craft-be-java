@@ -8,7 +8,7 @@
 
 ## Key Principles
 
-1. **Domain Independence**: Domain logic must be independent of infrastructure concerns
+1. **Domain In[src](src)dependence**: Domain logic must be independent of infrastructure concerns
 2. **Aggregate Encapsulation**: Aggregates control access to their internal state and enforce business rules
 3. **Ports and Adapters**: Use interfaces (ports) to define contracts between domain and infrastructure
 4. **Immutability**: Prefer immutable value objects (Java records) over mutable entities
