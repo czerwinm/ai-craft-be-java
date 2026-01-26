@@ -8,12 +8,18 @@
 
 ## Key Principles
 
-1. **Domain In[src](src)dependence**: Domain logic must be independent of infrastructure concerns
+1. **Domain Independence**: Domain logic must be independent of infrastructure concerns
 2. **Aggregate Encapsulation**: Aggregates control access to their internal state and enforce business rules
 3. **Ports and Adapters**: Use interfaces (ports) to define contracts between domain and infrastructure
 4. **Immutability**: Prefer immutable value objects (Java records) over mutable entities
 5. **Event-Driven**: Emit domain events to communicate state changes
 6. **Package-Private by Default**: Expose only what's necessary; keep implementation details hidden
+
+## Code Style
+
+1. **No Blank Lines Inside Method Bodies**: Do not add empty lines within function/method bodies. Keep method implementation compact and readable without internal blank lines.
+2. **Blank Lines Between Methods**: Use single blank line to separate methods, classes, and logical code blocks at the class level.
+3. **Consistent Formatting**: Follow existing code style in the project.
 
 ## Document Structure
 

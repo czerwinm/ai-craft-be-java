@@ -1,256 +1,112 @@
-# Podsumowanie: Implementacja Adaptera Persystencji dla Device Configuration
+# Podsumowanie Implementacji Issue #2
 
-## Zadanie
-GitHub Issue #2: https://github.com/michal-michaluk/ai-craft-be-java/issues/2
+## Status: ✅ UKOŃCZONE
 
-Implementacja persystencji obiektów Device jako dokumentów JSONB w PostgreSQL z:
-- ✅ Pełnymi operacjami CRUD
-- ✅ Optymistycznym blokowaniem
-- ✅ Odczytem wszystkich z paginacją
+GitHub Issue: https://github.com/michal-michaluk/ai-craft-be-java/issues/2
 
-## Zaimplementowane Komponenty
+## Wymagania z Issue
+- ✅ Pełne CRUD dla Device jako JSONB w PostgreSQL
+- ✅ Optymistyczne blokowanie
+- ✅ Odczyt wszystkich z paginacją
 
-### 1. Porty (Interfejsy)
+## Zaimplementowane Pliki
 
-#### DeviceConfigurationService (Port Pierwotny)
-**Lokalizacja**: `src/main/java/devices/configuration/management/DeviceConfigurationService.java`
+### Kod Produkcyjny (2 pliki):
 
-Serwis zarządzający cyklem życia agregatu DeviceConfiguration:
-- `createDevice(String deviceId)` - tworzenie nowego urządzenia
-- `getDevice(String deviceId)` - pobieranie urządzenia
-- `updateOwnership/Location/OpeningHours/Settings(...)` - aktualizacje z optymistycznym blokowaniem
-- `deleteDevice(String deviceId, long version)` - usuwanie
-- `listDevices(Pageable)` - listowanie z paginacją
+1. **DeviceConfigurationDocumentRepository.java** (140 linii) - NOWY
+   - Adapter persystencji implementujący `DeviceConfigurationRepository`
+   - JPA repository z JSONB storage
+   - Optymistyczne blokowanie z `@Version`
+   - Publikacja zdarzeń przez `ApplicationEventPublisher`
+   - Nested entities: `DeviceDocumentEntity`, `DeviceEventEntity`
 
-#### DeviceConfigurationRepository (Port Wtórny)
-**Lokalizacja**: `src/main/java/devices/configuration/management/DeviceConfigurationRepository.java`
+2. **JsonConfiguration.java** - ZMODYFIKOWANY
+   - Odkomentowano inicjalizację `EventTypes` dla `devices.configuration.management.DomainEvent`
+   - Niezbędne dla zapisu metadanych zdarzeń w tabeli `device_events`
 
-Interfejs repozytorium (package-private):
-- `findById(String deviceId)` - zwraca `Optional<VersionedDevice>`
-- `save(DeviceConfiguration, Long expectedVersion)` - zwraca nową wersję
-- `delete(String deviceId, long expectedVersion)` - z walidacją wersji
-- `exists(String deviceId)` - sprawdzanie istnienia
-- `findAll(Pageable)` - paginacja
+### Kod Testowy (2 pliki):
 
-### 2. Obiekty Wartości i Wyjątki
+3. **DeviceConfigurationDocumentRepositoryTest.java** (183 linie) - NOWY
+   - 10 testów integracyjnych z Testcontainers PostgreSQL
+   - Testy CRUD, optymistycznego blokowania, paginacji, emisji zdarzeń
+   - Używa `@Transactional(propagation = Propagation.NOT_SUPPORTED)` dla JPA versioning
 
-- **VersionedDevice** - wrapper agregatu z numerem wersji
-- **DeviceNotFoundException** - urządzenie nie istnieje
-- **DeviceAlreadyExistsException** - urządzenie już istnieje  
-- **OptimisticLockException** - konflikt wersji
+4. **IntegrationTestConfiguration.java** (25 linii) - NOWY
+   - Mockowe beany: `HeartbeatInterval`, `KnownDevices`
+   - Niezbędne do uruchomienia kontekstu Spring w testach
 
-### 3. Adapter Persystencji
+### Dokumentacja (1 plik):
 
-#### DeviceConfigurationDocumentRepository
-**Lokalizacja**: `src/main/java/devices/configuration/management/DeviceConfigurationDocumentRepository.java`
-
-Implementacja persystencji używająca:
-- **JPA** z Hibernate
-- **JSONB** dla przechowywania agregatów jako dokumenty JSON
-- **Optimistic Locking** z `@Version`
-- **Event Publishing** przez `ApplicationEventPublisher`
-
-**Struktura wewnętrzna:**
-
-```
-DeviceConfigurationDocumentRepository (adapter)
-├── DocumentRepository (JPA interface)
-├── DeviceDocumentEntity (encja JPA)
-│   ├── deviceId (PK)
-│   ├── version (@Version)
-│   └── device (@Type(JsonBinaryType.class))
-├── EventRepository (JPA interface)
-└── DeviceEventEntity (encja dla event log)
-    ├── id (UUID)
-    ├── deviceId
-    ├── type (nazwa typu eventu)
-    ├── time (timestamp)
-    └── event (@Type(JsonBinaryType.class))
-```
-
-**Kluczowe funkcjonalności:**
-
-1. **Zapis z optymistycznym blokowaniem:**
-   - Walidacja oczekiwanej wersji przed zapisem
-   - Rzucenie `OptimisticLockException` przy niezgodności
-   - Automatyczna inkrementacja wersji przez JPA `@Version`
-
-2. **Emisja zdarzeń domenowych:**
-   - Zapis zdarzeń do tabeli `device_events`
-   - Publikacja zdarzeń przez Spring Event Bus
-   - Czyszczenie listy zdarzeń po emisji
-
-3. **Persystencja JSONB:**
-   - Cały agregat zapisywany jako JSON w kolumnie JSONB
-   - Wykorzystanie `@Type(JsonBinaryType.class)` z Hypersistence Utils
-   - Wydajne zapytania i indeksowanie PostgreSQL
+5. **AGENTS.md** - ZMODYFIKOWANY
+   - Dodano sekcję "Code Style" z regułą: brak pustych linii wewnątrz metod
+   - Poprawiono literówkę: "Domain Independence"
 
 ## Schemat Bazy Danych
 
-Schemat został już zdefiniowany w `src/main/resources/db/db.changelog.yaml`:
-
-### Tabela `device_document`
-```yaml
-- device_id (varchar PK)
-- version (int, default: 1) 
-- device (jsonb)
-```
-
-### Tabela `device_events`  
-```yaml
-- id (uuid PK)
-- device_id (varchar)
-- type (varchar)
-- time (timestamp)
-- event (jsonb)
-```
+Wykorzystuje istniejące tabele z `db.changelog.yaml`:
+- `device_document` (device_id PK, version, device JSONB)
+- `device_events` (id, device_id, type, time, event JSONB)
 
 ## Testy
 
-### Testy Jednostkowe ✅
+### Status: ✅ WSZYSTKIE PRZECHODZĄ
 
-#### DeviceConfigurationServiceTest (11 testów)
-Pokrywa wszystkie operacje serwisu z mockowanym repozytorium:
-- Tworzenie urządzenia
-- Pobieranie (sukces i brak)
-- Aktualizacje wszystkich aspektów (ownership, location, openingHours, settings)
-- Usuwanie
-- Listowanie z paginacją
-- Obsługa wyjątków (DeviceNotFoundException, DeviceAlreadyExistsException, OptimisticLockException)
-
-#### VersionedDeviceTest (4 testy)
-Walidacja obiektu wartości:
-- Tworzenie z poprawnymi danymi
-- Akceptacja wersji 0
-- Odrzucenie null device
-- Odrzucenie ujemnej wersji
-
-### Testy Integracyjne (Wymagają Dockera) ✅
-
-**DeviceConfigurationDocumentRepositoryTest** (10 testów) - test z prawdziwą bazą PostgreSQL przez Testcontainers:
-- Zapis i odczyt urządzenia
-- Sprawdzanie istnienia
-- Aktualizacja z optymistycznym blokowaniem
-- Konflikt wersji (OptimisticLockException)
-- Usuwanie urządzenia
-- Usuwanie nieistniejącego (DeviceNotFoundException)
-- Usuwanie z błędną wersją (OptimisticLockException)
-- Paginacja
-- Emisja zdarzeń domenowych
-
-**Aby uruchomić testy integracyjne:**
-
-1. Upewnij się, że Docker Desktop działa:
-   ```bash
-   docker ps
-   ```
-
-2. Uruchom testy:
-   ```bash
-   ./gradlew test --tests "DeviceConfigurationDocumentRepositoryTest"
-   ```
-
-Test automatycznie:
-- Uruchomi kontener PostgreSQL 15.3
-- Wykona migracje Liquibase
-- Uruchomi wszystkie testy
-- Zatrzyma kontener po testach
-
-**Konfiguracja testowa** (`application-integration-test.yml`):
-```yaml
-spring:
-  datasource:
-    url: 'jdbc:tc:postgresql:15.3-alpine:///devices?TC_REUSABLE=true'
-    driverClassName: org.testcontainers.jdbc.ContainerDatabaseDriver
-  liquibase:
-    dropFirst: true
+```bash
+./gradlew test --tests "DeviceConfigurationDocumentRepositoryTest"
+BUILD SUCCESSFUL - 10/10 tests PASSED
 ```
 
-## Konfiguracja
+**Wymaganie**: Docker/Rancher Desktop musi być uruchomiony dla Testcontainers
 
-### application.yml
-```yaml
-spring:
-  jpa:
-    hibernate.ddl-auto: update  # lub 'validate' dla produkcji
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-  liquibase:
-    change-log: classpath:db/db.changelog.yaml
-```
+### Pokrycie Testami:
 
-### application-integration-test.yml
-```yaml
-spring:
-  datasource:
-    url: 'jdbc:tc:postgresql:15.3-alpine:///devices?TC_REUSABLE=true'
-    driverClassName: org.testcontainers.jdbc.ContainerDatabaseDriver
-  liquibase:
-    dropFirst: true
-```
+1. ✅ shouldSaveAndRetrieveDevice
+2. ✅ shouldReturnEmptyForNonExistentDevice
+3. ✅ shouldCheckIfDeviceExists
+4. ✅ shouldUpdateDeviceWithOptimisticLocking
+5. ✅ shouldThrowOptimisticLockExceptionOnVersionMismatch
+6. ✅ shouldDeleteDevice
+7. ✅ shouldThrowExceptionWhenDeletingNonExistentDevice
+8. ✅ shouldThrowOptimisticLockExceptionWhenDeletingWithWrongVersion
+9. ✅ shouldListDevicesWithPagination
+10. ✅ shouldEmitDomainEvents
 
 ## Zgodność z Architekturą
 
-✅ **Domain Independence** - Domena nie zależy od infrastruktury  
-✅ **Aggregate Encapsulation** - DeviceConfiguration pozostaje package-private  
-✅ **Ports and Adapters** - Czysty podział na porty i adaptery  
-✅ **Immutability** - Obiekty wartości są niezmienne (records)  
-✅ **Event-Driven** - Zdarzenia domenowe emitowane przy zapisie  
-✅ **Package-Private by Default** - Repozytorium i encje package-private  
-✅ **Optimistic Locking** - JPA `@Version` dla kontroli współbieżności  
-✅ **JSONB Storage** - Efektywna persystencja agregatów w PostgreSQL  
+✅ **Hexagonal Architecture** - Porty i adaptery właściwie rozdzielone  
+✅ **DDD** - Agregat, zdarzenia domenowe, repository pattern  
+✅ **Package-private** - Adapter i encje package-private  
+✅ **Event-Driven** - Zdarzenia persystowane i publikowane  
+✅ **JSONB Storage** - Agregat jako dokument JSON w PostgreSQL  
+✅ **Optimistic Locking** - JPA `@Version` z walidacją  
+✅ **Code Style** - Brak pustych linii wewnątrz metod
 
-## Struktura Plików
+## Minimalizm Zmian
 
-```
-src/main/java/devices/configuration/management/
-├── DeviceConfiguration.java                        # Agregat
-├── DeviceConfigurationSnapshot.java                # Migawka
-├── DeviceConfigurationService.java                 # Port Pierwotny ✅
-├── DeviceConfigurationRepository.java              # Port Wtórny ✅
-├── DeviceConfigurationDocumentRepository.java      # Adapter Persystencji ✅
-├── VersionedDevice.java                            # Obiekt Wartości ✅
-├── DeviceNotFoundException.java                    # Wyjątek ✅
-├── DeviceAlreadyExistsException.java              # Wyjątek ✅
-├── OptimisticLockException.java                   # Wyjątek ✅
-└── ... (value objects, domain events)
+**Zmodyfikowane (2):**
+- `AGENTS.md` - tylko Code Style section (8 linii)
+- `JsonConfiguration.java` - tylko EventTypes.init (23 linie)
 
-src/test/java/devices/configuration/management/
-├── DeviceConfigurationServiceTest.java             # Test Serwisu ✅
-└── VersionedDeviceTest.java                        # Test VO ✅
+**Nowe (3):**
+- `DeviceConfigurationDocumentRepository.java`
+- `DeviceConfigurationDocumentRepositoryTest.java`
+- `IntegrationTestConfiguration.java`
 
-src/main/resources/db/
-└── db.changelog.yaml                               # Schemat DB ✅
-```
+**Bez zmian:** Wszystkie inne pliki niezmienione, w tym `IntegrationTest.java`, pliki w `src/docs/`
 
-## Wynik Kompilacji i Testów
+## Uruchomienie
 
-### Testy Jednostkowe
-```
-BUILD SUCCESSFUL
-DeviceConfigurationServiceTest: 11/11 ✅ PASSED
-VersionedDeviceTest: 4/4 ✅ PASSED
-```
-
-### Testy Integracyjne
-```
-DeviceConfigurationDocumentRepositoryTest: 10 testów ✅
-Status: Wymaga uruchomionego Dockera
-```
-
-**Uwaga**: Jeśli testy integracyjne nie przechodzą, sprawdź czy Docker Desktop działa:
 ```bash
+# Sprawdź Docker
 docker ps
-# Powinno pokazać listę kontenerów lub pustą listę, nie błąd połączenia
+
+# Uruchom testy
+./gradlew test --tests "DeviceConfigurationDocumentRepositoryTest"
+
+# Lub wszystkie testy
+./gradlew test
 ```
 
-## Następne Kroki
+## Gotowe do Merge ✅
 
-Adapter persystencji jest gotowy. Kolejne możliwe rozszerzenia:
-
-1. **HTTP Adapter (REST API)** - endpointy CRUD z obsługą nagłówków wersji
-2. **Kafka Adapter** - publikacja zdarzeń na topiki Kafka
-3. **Testy Integracyjne** - po uruchomieniu Dockera
-4. **Query Adapter** - dedykowane read modele dla wyszukiwania
-5. **Metryki** - monitorowanie wydajności persystencji
-
-Implementacja jest zgodna z zasadami DDD, Hexagonal Architecture i wytycznymi projektu z @AGENTS.md.
+Kod jest kompletny, przetestowany i zgodny z wymaganiami projektu.
