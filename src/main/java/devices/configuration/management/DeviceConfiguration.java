@@ -31,11 +31,9 @@ class DeviceConfiguration {
 
     void changeOwnership(Ownership newOwnership) {
         Objects.requireNonNull(newOwnership, "Ownership cannot be null");
-
         if (!Objects.equals(this.ownership, newOwnership)) {
             this.ownership = newOwnership;
             events.add(new DomainEvent.OwnershipChanged(deviceId, newOwnership));
-
             if (newOwnership.isUnowned()) {
                 resetToDefaults();
             }
@@ -52,7 +50,6 @@ class DeviceConfiguration {
 
     void changeOpeningHours(OpeningHours newOpeningHours) {
         Objects.requireNonNull(newOpeningHours, "OpeningHours cannot be null");
-
         if (!Objects.equals(this.openingHours, newOpeningHours)) {
             this.openingHours = newOpeningHours;
             events.add(new DomainEvent.OpeningHoursChanged(deviceId, newOpeningHours));
@@ -62,7 +59,6 @@ class DeviceConfiguration {
 
     void changeSettings(Settings newSettings) {
         Objects.requireNonNull(newSettings, "Settings cannot be null");
-
         if (!Objects.equals(this.settings, newSettings)) {
             this.settings = newSettings;
             events.add(new DomainEvent.SettingsChanged(deviceId, newSettings));

@@ -35,7 +35,6 @@ public class DeviceConfigurationService {
     public DeviceConfigurationSnapshot updateOwnership(String deviceId, Ownership ownership, long version) {
         VersionedDevice versioned = repository.findById(deviceId)
                 .orElseThrow(() -> new DeviceNotFoundException(deviceId));
-
         DeviceConfiguration device = versioned.device();
         device.changeOwnership(ownership);
         repository.save(device, version);
@@ -45,7 +44,6 @@ public class DeviceConfigurationService {
     public DeviceConfigurationSnapshot updateLocation(String deviceId, Location location, long version) {
         VersionedDevice versioned = repository.findById(deviceId)
                 .orElseThrow(() -> new DeviceNotFoundException(deviceId));
-
         DeviceConfiguration device = versioned.device();
         device.changeLocation(location);
         repository.save(device, version);
@@ -55,7 +53,6 @@ public class DeviceConfigurationService {
     public DeviceConfigurationSnapshot updateOpeningHours(String deviceId, OpeningHours openingHours, long version) {
         VersionedDevice versioned = repository.findById(deviceId)
                 .orElseThrow(() -> new DeviceNotFoundException(deviceId));
-
         DeviceConfiguration device = versioned.device();
         device.changeOpeningHours(openingHours);
         repository.save(device, version);
@@ -65,7 +62,6 @@ public class DeviceConfigurationService {
     public DeviceConfigurationSnapshot updateSettings(String deviceId, Settings settings, long version) {
         VersionedDevice versioned = repository.findById(deviceId)
                 .orElseThrow(() -> new DeviceNotFoundException(deviceId));
-
         DeviceConfiguration device = versioned.device();
         device.changeSettings(settings);
         repository.save(device, version);
