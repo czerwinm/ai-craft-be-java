@@ -1,0 +1,96 @@
+
+Michał Michaluk (Bottega IT Minds) 00:02 
+mój brat żeby czuje się bezpiecznie że to zadziała Okej w takim razie przejdźmy do tematu spotkania mówimy sobie proces instalacji urządzeń cały proces który startuje tak naprawdę z systemu sprzedażowego z procesów sprzedażowych Nomi Instalujemy wyglądasz tak samo bez powodu czy po prostu sprzedaliśmy komuś urządzenia w stylu ładowarki do samochodu elektrycznego jakiemuś klientowi i sam fakt sprzedaży takiego urządzenia czy czy usług urządzenia związanego jeszcze nie jest powodem żeby cokolwiek instalować ale zaraz po fakcie dokonania sprzedaży sprzedawca definiuje zlecenie instalacji 
+
+Michał Michaluk (Bottega IT Minds) 01:02 
+ work order tak tutaj już mam informacje dla kogo Instalujemy ktoś z klientem jaki typ wiązania Natalko do przewodów walkę o pewnej nie wiem tam 50 kw i jakie kable mam jechać na przykład dołączona Boże bez kabli No to tak to to jest taki start który dzieje się jeszcze w innym innym stanie zrobił którego nie będziemy mogli 
+
+Michał Michaluk (Bottega IT Minds) 01:31 
+ dojazd zrealizowane będziemy będziemy musieli zintegrować się z systemem sprzedażowym jak się z integrujemy prawdopodobnie przez przez kawkę Ale ustalimy sam kontrakt jak dodał do nas wymienia nara później z deweloperami z tamtej strony jak dostaniemy już masaż który mówi nam że muszę odrobić to stworzone ale w tym momencie możemy już że tak powiem rozpocząć pierwsze kroki mają procesu instalacji Jednym z pierwszych istotnych elementów jest przygotowanie bus tego formularza start Saw jest otwarta Accept and test testy akceptacyjne na miejscu podczas instalacji i po pracy urządzenia 
+
+Michał Michaluk (Bottega IT Minds) 02:31 
+ do każdej instalacji musi być dobrany taki kwestionariusz a ja z różnymi pytaniami żeby wam uświadomić jaki to tytuł tam mogą być pytania to Jednym z pierwszych może być czy klient wskazał dokładnie punkt w którym urządzenie ma być zainstalowane tak albo 3 w promieniu 5 m od punktu urządzenie będzie instalowane nie ma samochodu czy innego 
+
+Michał Michaluk (Bottega IT Minds) 03:01 
+ uszkodzona to też instalacji tak to są tego typu pytania na starcie potem są oczywiście jakieś tam pytania odnośnie jak to jest podłączona jest skonfigurowane z Czy są jakieś błędy Ala Kocham cię znowu czy posprzątałeś Iza znaczy się tak I czy miał do Wałków papierosów wyrzuciłaś i tak dalej więc przez cały proces instalacji jest zanim zaczniesz aż jak skończy ten festiwal już jest wypełniony i teraz dobieramy do konkretnej instalacji cały sekcje z tego kwestionariusza inaczej Niektóre są lekcje są dla ładowarek kopiowanych w ziemię inne sekcje są dla ładowarek w mieszanych na tak i inne sekcje są dla klientów indywidualnych Gdzie w domu ktoś ma w garażu ładowarkę insekt jak będzie dla klienta 
+
+Michał Michaluk (Bottega IT Minds) 04:01 
+ jak jakaś firma która ma po prostu 10 ładowarek na parkingu podziemnym tak jeszcze inna sekcja będzie na dla klienta w celu municipalities miasto Wrocław czy miasto Warszawa który zamawia u nas plus E tam z ładowarek czy tam 1000 to 2 więc te lekcje są dobierane na podstawie instalacji czy w gruncie czy na ścianie Jaka 
+
+Michał Michaluk (Bottega IT Minds) 04:31 
+ segment klienta czy to jest klient korporacyjny indywidualny Czy ty to garnek mamy no i jeszcze zależy od kraju dla innych krajów będę mówił w innym języku proste pytania mogą se to jest główny czynnik który w terminie będzie które sekcje dobierzemy tak boli jak proces już wiem że Instalujemy te sekcje musimy sobie pobierać 
+
+Michał Michaluk (Bottega IT Minds) 05:02 
+pusty formularz sad potem następuje przypisanie się któregoś z Instalatorów do zadania tak instalator tak naprawdę na liście są takie zlecenia do realizacji i do tych do których nikt nie jest wpisano po prostu może się przypisać kto odpowiada Natalko ukradłam instalacje są prognozy wyjątkowy przypadki Gdzie inny instalator może odebrać już przypisane mu instalator i dane zadanie że tak godzinę Ty ktoś to on miał wypadek w Londynie na urlopie czy cokolwiek takiego no to wtedy może zamienić się w katalogu może czegoś to zadanie ale nie przypadkowo Tak czyli momencie ktoś musi potwierdzić tak chcę odebrać to zadanie od innego od innego 
+
+Michał Michaluk (Bottega IT Minds) 06:02 
+ tam logika musi być w tym miejscu przypisania tak jeżeli ktoś się przepisze to może też by ci nawet ale instalacji tam są wszystkie informacje z Worda po prostu dla kobiety gdzie co Instalujemy no i też jest wygląda sad formularz który można wejść i zacząć już odpowiadać na na pytania jak już jest 
+
+Michał Michaluk (Bottega IT Minds) 06:32 
+ ale to już możesz zacząć odkładać na pierwsze pytania i tych pytań Może być dużo to mogę być różnego typu może to być tak nie tekst po prostu w odpowiedzi albo upload zdjęć a tak to też jest dosyć częsta że mam sprawę musisz powiedzieć że nie ma żadnego przedmiotu który mógłby zostać uszkodzony w procesie instalacji im dołączyć zdjęcia które to udowadniają tak potem Illustrator jak już podatki fizyczne to znowu musisz wpisać się do tego burgera a do tego procesu instalacji i urządzeń prawdopodobnie będzie jakiś bar kod QR kod który będzie identyfikator urządzenia ewentualnie jak włączy Urządzenie to gdzieś tam Settings a on sobie znajdzie ten 
+
+Michał Michaluk (Bottega IT Minds) 07:32 
+ to Audi urządzenia i jest w stanie je przypisać po prostu danym procesie instalacji to jest bardzo ważny moment to bo w tym momencie dopiero wiemy że urządzają fizycznie jest i się zwłaszcza i które to będzie wcześniej w stałym zleceniu może udzielić młodzi filmowcy ma być tą ładowarkę ewentualnie jakiego producenta i tak dalej a dopiero teraz wiem w której urządzenia została wyjęta z pudełka potem oczywiście może być znowu w 
+
+Michał Michaluk (Bottega IT Minds) 08:02 
+ i odpowiedzi z formularza do nich W pewnym momencie jak to urządzenia które jest przypisana zostanie zbudowana włączy się fizycznie i połączę do napędu to dostanie emeryt tak zwane budmet fixation request z tego urządzenia w którym to urządzenie kurde wyślę wam taki komunikat i My też chcemy też w procesie instalacji być świadomi tego że przyszedł ten komunikat albo jeszcze nie przekonam to tylko mnie macie kiedy przyjdzie jutro instalator musi przyjść że ci się ten salon z tego bo tam są informacje w stylu Jakich firm oraz jaki model jaki producent urządzenia Jaki modem tam jest i parę innych tam jeszcze tak kaszle w domu według tego protokołu prostu musi wysłać takie informacje 
+
+Michał Michaluk (Bottega IT Minds) 09:02 
+ a instalator musi to potwierdzić tak Najważniejsze jest to żeby potwierdził że ten model się zgadza z tym co ma gdyby klient zamówił i że to faktu że powstał z instaluje nie pomyliły się cyferki sernika i tak dalej To zaplanuj tak naprawdę kluczowym elementem jest tylko odebranie informacji obok modyfication dodatkowo potwierdzenie przez instalatora że to jest ten brud 
+
+Michał Michaluk (Bottega IT Minds) 09:32 
+ Buckley gdyby drugi punkt modyfication by urządzenie się restartuje na przykład w procesie instalacji i wtedy nic się nie zmieniło oczy jest ten sam film był ale ten samochodem tak dalej no to nas to nie interesują już nie musi tego potwierdzać nie jest taki sam więc nic się nie zmienia potwierdzać drugi raz Ale gdyby był upgrade firmware zrobiła do no i po aby 
+
+Michał Michaluk (Bottega IT Minds) 10:02 
+pewno urządzenie się zrestartuję i dostaniemy nowy budynek w pierwszym z mową 28 Martą to chcielibyśmy to jeszcze raz wyświetli I potwierdzić instalatora CRM gdyby z kolei się tak zdarzyło instalator dopiero na tym etapie zauważył że ogólnie to urządzenie na przykład o złej nocy albo ze złym Zadzwoń typem wtyczki to oczywiście może się wycofasz i przypisać kolejne urządzenie Ale w ten but który wcześniej był ani potwierdzenia Nie mają znaczenia na scenie mamuśki podłączyć to drugie urządzenie przypisać je musimy dostać but I on musi ten nowy potwierdzić tak bo tam się wszystko z Włocławka Station znowu oczywiście pytania to tym jak podłączył i tak dalej 
+
+Michał Michaluk (Bottega IT Minds) 11:02 
+ przy takiej powiedzmy ostatni przedostatni Lotto z czytanie lokalizacji i precyzyjnie GPS po prostu gdzie ta urządzenie 100 punktów na mapie z telefonu do jakiegoś tabletu instalator po prostu może czytać tą lokalizację i przepisać z urządzenia tylko mój prezent oczywiście korygować adres tak dalej zmieniać W całym cyklu życia urządzenia 
+
+Michał Michaluk (Bottega IT Minds) 11:32 
+ ale ale zależy nam na tym żeby mieć możliwy precyzyjną lokalizację tam od samego początku to jest kwestia jakości danych niestety z stanem tej pory kiedy ten proces nie jest zrealizowany w taki sposób że są błędy i urządzenia jest jak łapie po drugiej stronie ulicy tak no to jest też dostarczyć dla kierowcy No bo wiesz zasługa tego ogrodzenia z prawej strony on tak naprawdę jest blisko ale po drugiej stronie ulicy ataki najgłupsza sytuacja jaka się to było po drugiej stronie tam gdzie most jest tam kilometr czy 2 km dalej musisz na to niebezpieczna jest tak Mega Millions a tak to informację doda No no i oczywiście znowu co co każdy z tych kroków jakiś jest jakaś sekcja z tego 
+
+Michał Michaluk (Bottega IT Minds) 12:32 
+ test formularza do wypełnienia jak pytanie ze zdjęciami kiedy wszystkie pytania z formularza występują odpowiedzialne kiedy mamy przypisane urządzenie potwierdzonego gruda mamy lokalizację przypisaną to wtedy możemy domknąć tą instalację otwarty jest krok Gdzie można instalowanie i kebab 
+
+Michał Michaluk (Bottega IT Minds) 13:02 
+ tak powiem z perspektywy instalatora potem jeszcze dużo się dzieje w tych rozliczeń i wystawienie faktury klientowi rozliczeniu tak Wojtek wypłacanie pieniędzy instalator O witam i tym podobne rzeczy ale to już jest poza zakresem już tak do tej kwestii finansowe na nic nie interesują to co na pewno my musimy wymontować to to zna jakby zakończyła ci instalacja i w konsekwencji tego to też pojawia się nowy urządzenie tak i i to to Device configuration manager pl które do tej pory implementować liśmy którym panu już w systemie tak naprawdę teraz Dopiero zaczyna przejmować odpowiedzialność o to konkretne urządzenie które było właśnie zainstalowane tak i w ramach tego edytora konfiguracji modemu oczywiście zmienić właściciela możemy zmienić lokacje motor 
+
+Michał Michaluk (Bottega IT Minds) 14:02 
+ godziny od dostępności tego urządzenia całe zachowanie jakości tych danych to wszystko co było wczoraj już zabudowane to jest tak naprawdę Kolejne kolejne cyklem życia urządzania i tym podobne chcemy dodać nową funkcjonalność związaną z procesem instalacji i sidesteppers patrol taki zakres w celu zrealizowania jeśli chodzi o 
+
+Michał Michaluk (Bottega IT Minds) 14:32 
+ obecnie również urządzeniami tak configuration Management nie myślę że na sam koniec finalizacja finalizowanie instalacji To jest ten moment gdzie utworzono nowy urządzenie jak dotrę module Device Management tak widzę dzisiaj nie ma tej instalacji A mamy w walce Management 
+
+Michał Michaluk (Bottega IT Minds) 15:02 
+razem tworzyć urządzenia z palca i całą konfigurację wprowadzać od zera i tak Dziś ten proces instalacji się odbywa gdzie instalator na miejscu ma na papierze test i odhacza pytania odpisz czarną pytanie wpisuje współrzędne z Palucha tak Izka lutego tego papieru zdjęcia które zrobił telefonem wysyła do naszego banku fisu i one są przepisywane do Device configuration Management i odkładane jeszcze jak dowody instalacji na wszelki wypadek seriale więc celem takim nadrzędnym wprowadzenia tego procesu instalacji zautomatyzowania Cyprysowa niego jest przede wszystkim żeby ten proces nowa był szybki gładki bezproblemowe 
+
+Michał Michaluk (Bottega IT Minds) 16:02 
+ najwyższej jakości dane tak żeby dajta Quality po prostu było tak mi żeby wcale nie było chętnych pracy oczywiście też papieru na komputer a tak Dobra to jest pewien zakres jaki same realizować tej  jeszcze coś Co zrobiłbym z zespołem deweloperskim bo to to wtedy był cały zespół deweloperski którą wysłuchać tej opowieści wcześniej jeszcze powinniśmy zrobić święty były Workshop który to produkuje taki obrazek ale to już sobie podarujemy oczywiście to co w tej chwili jeszcze bym zrobił to wydzielił pod dziedzinę albo Metallica Slider Innymi słowy zrobił dekompozycje dekompozycja tego całego tego zagadnienia na mniejsze tematy jedna część do kompozycji już jest zrobiona że wpaść configuration Management jest już osobnym modułem analogicznie z drugiej strony trochę sprzedażowy jest odrębnym z tych spadłem z którego musimy się zintegrować głupot granica jest dosyć czytelna a trzeba 
+
+Michał Michaluk (Bottega IT Minds) 17:32 
+ doprecyzować ten co w mordę że ma przyjść ale też już było powiedziane i tak naprawdę co jest potrzebne w naszej strony w procesie instalacji i teraz pytanie Jak można po ten środek tak to teraz będziemy implementować do mniejszy kawałki to taki takim dobrym podziałem czy jeden z podziałów ty ma prawo dobrze zrobiłaś będzie 
+
+Michał Michaluk (Bottega IT Minds) 18:02 
+ wydzielanie Vertical Slice a dla instalacji zrobienie w nim głównego obiektu agregatu jako installation process obiekt który będzie akumulowane o informację na temat przebiegu i Postępu procesu instalacji tak czyli może być taka typu reagować na tego typu komendy czy diventare jak work order klient jak Installer The installation tool installation butów fixation Swift boot integration lokalizacją czy Finish installation tak tego typu czynności i tak naprawdę na tym obiekcie można wykonać taki część z nich jest jak dotrę 
+
+Michał Michaluk (Bottega IT Minds) 19:02 
+ zewnątrz to jest przez system sprzedażowy część przez instalatora wziąć przez urządzenia i tak dalej więc to jest jakby były jeden z kawałków czyli wszystkie kluczowe elementy tego procesu za wyjątkiem samego są proste tak a równolegle zrobić po prostu zbieraczkę dane plama sekcje z pytaniami różnego typu i gdzie można w prosty sposób odpowiada 
+
+Michał Michaluk (Bottega IT Minds) 19:32 
+ pytania to prosto w oczy tak nie wiem czy czy dodać zdjęcie no i oczywiście wyświetlić stan tego formularza i wszystkie pytania z odpowiedziami które już zostały pozbierane tutaj może być też pewna logika nieprzywieralna tego typu formularzu gdzie odpowiedzenie tak na jakieś pytania świata mam nową sekcja także i tę sekcje mogłyby być też warunkowe gdzie 
+
+Michał Michaluk (Bottega IT Minds) 20:03 
+odpowiedzi na powszechnie pytania My chcemy daną sekcje pokazać albo nie pokazać taki ona będzie wtedy wymagana albo nie będzie wymagana niektóre z pytań mogą też być wymagane i tak z rana ci tak bluzgać na sam kolor jak to takie zamknięcie formularz na zakończenie SAP gotowanie formularza to też pozwala nam zweryfikować To naprawdę czy stan tego formularza jest kompletny i pozwala nam te pełnią zakończysz odpowiadanie na nie tak No tutaj ale czynności wykonywane przez płaszcze na prąd foto czy submit form dobra to to jest głównym główne mięso które podczas instalacji się wykonuje ale jeszcze wcześniej mamy tak naprawdę gdzieś narzędzie do definiowania tak sekcji Tak Gdybyśmy chcieli 
+
+Michał Michaluk (Bottega IT Minds) 21:03 
+ sekcje dla nowego typu klienta do nowego klienta czy dla nowego regionu tak naprawdę zdefiniować No to też gdzieś jakieś narzędzie do tego by się przydało i to może by chciał kreatywne edytor tak który będzie tak naprawdę powiedział że definiowanie pojedynczy lista atrakcji taki możemy tutaj jak gdyby dodawać pytania czy zmieniać te pytania a jeszcze dodatkowo do sekcji na poziomie są 
+
+Michał Michaluk (Bottega IT Minds) 21:32 
+ dołożyć jakiś metoda na które mówią zostałoby jest dla Polski dla segmentu klienta dowolnego i dla ładowarek tylko i wyłącznie pana Jeśli więc te informacje po których decydujemy o które sekcje wybrać dla danej instalacji tutaj w tych metadanych dla sekcji po prostu bylibyśmy zdefiniuj myśl sam edytor już jest używany przez administratora a instalator tego nie będzie nic do używało on tylko odpowiada definiowane sekcji robi ktoś z wyższymi uprawnieniami że no i oczywiście jeżeli sekcja się zmienia to nie ma to żadnego wpływu na formularze które już Wstąp obiegu bo czy już są tak powiem opony zimowe wejścia że tak powiem dystrakcji czy wszystkie nowe formularze będą z tą wersją sekcji czy tak powiem używane a tam po szczególnie to już 
+
+Michał Michaluk (Bottega IT Minds) 22:32 
+ seks to są zamrożone sklepowy nigdy się nie spełniają to też jest ważne żebyś o tym pamiętali No dobra tylko tak można to podzielić Czy macie może jakieś pytania to także kasę dobra tutaj oczywiście istotnymi pierwszymi pytaniami Czy pierwszymi czynnościami Jakie były Złapałeś na pewno zaproponować czegoś aplikowac to między frontem do instalatora albo Tandem doprecyzowanie aby kontraktu z systemem border który wyróżniamy między sobą i tyle powiedzmy z kluczowych rzeczy na na sam start i myślę że przechodzi do Zbadaj się tak powiedz dobra 
+
+Michał Michaluk (Bottega IT Minds) 23:53 
+Jak można wrzucić jakieś tego agenta który tamten trochę trudniej 
