@@ -33,8 +33,7 @@ class IntervalConfigurationProperties {
         modelRules.stream()
             .map(p -> new IntervalRule.ModelRule(p.interval(), p.vendor(), p.modelRegex()))
             .toList();
-    IntervalRule.DefaultRule defaultRuleObj =
-        new IntervalRule.DefaultRule(defaultRule.interval());
+    IntervalRule.DefaultRule defaultRuleObj = new IntervalRule.DefaultRule(defaultRule.interval());
     return IntervalConfiguration.create(deviceRules, modelRulesList, defaultRuleObj);
   }
 }

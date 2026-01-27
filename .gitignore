@@ -3,12 +3,18 @@
 target/
 target-test/
 build/
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
 
 ## linux
 .*
 !.git*
 !.travis.yml
 !.codecov.yml
+!.ai/
+!.cursor/
 *~
 
 

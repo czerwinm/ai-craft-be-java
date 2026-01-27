@@ -72,6 +72,10 @@ test {
     useJUnitPlatform()
     jvmArgs("--enable-preview")
     finalizedBy jacocoTestReport
+    
+    // Testcontainers configuration for Rancher Desktop
+    environment "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", System.getProperty("user.home") + "/.rd/docker.sock"
+    environment "TESTCONTAINERS_RYUK_DISABLED", "true"
 }
 
 jacoco {

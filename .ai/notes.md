@@ -186,5 +186,8 @@ robienie wlasnych agentow np. na podstawie input i output
 
 manus 
 
+testy e2e z całym flow są wazne (a nie tylko unity)
+
+kazdy mikroserwis vertical slice i wewnatrz hexagon 
 
 
