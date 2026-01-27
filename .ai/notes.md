@@ -278,3 +278,4 @@ Features/
 - [ ] Manus – co to za narzędzie?
 - [ ] Prompt Cowboy – szczegóły
 - [ ] GitHub Issue Template – utworzenie szablonu dla projektu
+- [ ] Spring Events – https://www.baeldung.com/spring-events
