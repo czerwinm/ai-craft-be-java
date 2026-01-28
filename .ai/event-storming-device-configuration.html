@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Event Storming: Device Configuration</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    svg {
+      width: 100%;
+      height: 100vh;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900">
+  <defs>
+    <style>
+      .command { fill: #4A90E2; stroke: #2E5C8A; stroke-width: 2; }
+      .event { fill: #FF9500; stroke: #CC7700; stroke-width: 2; }
+      .rule { fill: #FFD700; stroke: #CCB000; stroke-width: 2; }
+      .actor { fill: #FFEB3B; stroke: #C5B800; stroke-width: 1; }
+      .aggregate { fill: #FFFBEA; stroke: #F4C542; stroke-width: 3; stroke-dasharray: 5,5; }
+      .arrow { stroke: #333; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .text { font-family: Arial, sans-serif; font-size: 13px; text-anchor: middle; }
+      .text-white { fill: white; font-weight: 500; }
+      .text-black { fill: #333; }
+      .title { font-size: 20px; font-weight: bold; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#333" />
+    </marker>
+  </defs>
+  <title>Event Storming: Device Configuration</title>
+  <desc>Event storming diagram for DeviceConfigurationEditor aggregate</desc>
+  <rect class="aggregate" x="30" y="30" width="1340" height="840" rx="10" />
+  <text class="text text-black title" x="700" y="65">DeviceConfigurationEditor</text>
+  <path class="actor" d="M 60,120 L 140,120 L 140,155 L 135,160 L 60,160 Z" />
+  <path class="actor" d="M 135,155 L 135,160 L 140,155 Z" fill="#F4D03F" stroke="#C5B800" stroke-width="1"/>
+  <text class="text text-black" x="100" y="145">Admin</text>
+  <rect class="command" x="180" y="120" width="130" height="60" rx="5" />
+  <text class="text text-white" x="245" y="145">Create Device</text>
+  <text class="text text-white" x="245" y="165" font-size="11">(createDevice)</text>
+  <rect class="rule" x="350" y="120" width="150" height="60" rx="5" />
+  <text class="text text-black" x="425" y="145">Device ID cannot</text>
+  <text class="text text-black" x="425" y="162">be null or empty</text>
+  <rect class="event" x="540" y="120" width="130" height="60" rx="5" />
+  <text class="text text-white" x="605" y="145">Device Created</text>
+  <text class="text text-white" x="605" y="165" font-size="11">DeviceCreated</text>
+  <path class="arrow" d="M 140,145 L 180,145" />
+  <path class="arrow" d="M 310,150 L 350,150" />
+  <path class="arrow" d="M 500,150 L 540,150" />
+  <path class="actor" d="M 60,240 L 140,240 L 140,275 L 135,280 L 60,280 Z" />
+  <path class="actor" d="M 135,275 L 135,280 L 140,275 Z" fill="#F4D03F" stroke="#C5B800" stroke-width="1"/>
+  <text class="text text-black" x="100" y="265">Admin</text>
+  <rect class="command" x="180" y="240" width="130" height="60" rx="5" />
+  <text class="text text-white" x="245" y="265">Update</text>
+  <text class="text text-white" x="245" y="280">Ownership</text>
+  <rect class="rule" x="350" y="210" width="150" height="60" rx="5" />
+  <text class="text text-black" x="425" y="235">Ownership cannot</text>
+  <text class="text text-black" x="425" y="252">be null</text>
+  <rect class="rule" x="350" y="290" width="150" height="60" rx="5" />
+  <text class="text text-black" x="425" y="315">Only change if</text>
+  <text class="text text-black" x="425" y="332">ownership differs</text>
+  <rect class="event" x="540" y="240" width="150" height="60" rx="5" />
+  <text class="text text-white" x="615" y="265">Ownership</text>
+  <text class="text text-white" x="615" y="282">Changed</text>
+  <path class="arrow" d="M 140,265 L 180,265" />
+  <path class="arrow" d="M 310,260 L 350,240" />
+  <path class="arrow" d="M 310,270 L 350,310" />
+  <path class="arrow" d="M 500,240 L 540,260" />
+  <path class="arrow" d="M 500,320 L 540,280" />
+  <path class="actor" d="M 60,420 L 140,420 L 140,455 L 135,460 L 60,460 Z" />
+  <path class="actor" d="M 135,455 L 135,460 L 140,455 Z" fill="#F4D03F" stroke="#C5B800" stroke-width="1"/>
+  <text class="text text-black" x="100" y="445">Admin</text>
+  <rect class="command" x="180" y="420" width="130" height="60" rx="5" />
+  <text class="text text-white" x="245" y="445">Update</text>
+  <text class="text text-white" x="245" y="460">Location</text>
+  <rect class="rule" x="350" y="420" width="150" height="60" rx="5" />
+  <text class="text text-black" x="425" y="445">Only change if</text>
+  <text class="text text-black" x="425" y="462">location differs</text>
+  <rect class="event" x="540" y="420" width="150" height="60" rx="5" />
+  <text class="text text-white" x="615" y="445">Location</text>
+  <text class="text text-white" x="615" y="462">Changed</text>
+  <path class="arrow" d="M 140,445 L 180,445" />
+  <path class="arrow" d="M 310,450 L 350,450" />
+  <path class="arrow" d="M 500,450 L 540,450" />
+  <path class="actor" d="M 60,560 L 140,560 L 140,595 L 135,600 L 60,600 Z" />
+  <path class="actor" d="M 135,595 L 135,600 L 140,595 Z" fill="#F4D03F" stroke="#C5B800" stroke-width="1"/>
+  <text class="text text-black" x="100" y="585">Admin</text>
+  <rect class="command" x="180" y="560" width="130" height="60" rx="5" />
+  <text class="text text-white" x="245" y="585">Update</text>
+  <text class="text text-white" x="245" y="600">Settings</text>
+  <rect class="rule" x="350" y="530" width="150" height="60" rx="5" />
+  <text class="text text-black" x="425" y="555">Settings cannot</text>
+  <text class="text text-black" x="425" y="572">be null</text>
+  <rect class="rule" x="350" y="610" width="150" height="60" rx="5" />
+  <text class="text text-black" x="425" y="635">Merge settings &</text>
+  <text class="text text-black" x="425" y="652">check if changed</text>
+  <rect class="event" x="540" y="560" width="150" height="60" rx="5" />
+  <text class="text text-white" x="615" y="585">Settings</text>
+  <text class="text text-white" x="615" y="602">Changed</text>
+  <path class="arrow" d="M 140,585 L 180,585" />
+  <path class="arrow" d="M 310,580 L 350,560" />
+  <path class="arrow" d="M 310,590 L 350,630" />
+  <path class="arrow" d="M 500,560 L 540,580" />
+  <path class="arrow" d="M 500,640 L 540,600" />
+  <text class="text text-black" x="900" y="120" font-weight="bold">Read-Only Operations:</text>
+  <rect class="command" x="850" y="150" width="140" height="60" rx="5" style="fill: #90CAF9; stroke: #1976D2;"/>
+  <text class="text text-white" x="920" y="175">Check</text>
+  <text class="text text-white" x="920" y="192">Violations</text>
+  <rect class="command" x="850" y="240" width="140" height="60" rx="5" style="fill: #90CAF9; stroke: #1976D2;"/>
+  <text class="text text-white" x="920" y="265">Calculate</text>
+  <text class="text text-white" x="920" y="282">Visibility</text>
+  <rect class="command" x="850" y="330" width="140" height="60" rx="5" style="fill: #90CAF9; stroke: #1976D2;"/>
+  <text class="text text-white" x="920" y="355">To Device</text>
+  <text class="text text-white" x="920" y="372">Configuration</text>
+  <text class="text text-black" x="1100" y="500" font-weight="bold">Legend:</text>
+  <rect class="command" x="1050" y="520" width="80" height="40" rx="3" />
+  <text class="text text-white" x="1090" y="545">Command</text>
+  <rect class="event" x="1050" y="580" width="80" height="40" rx="3" />
+  <text class="text text-white" x="1090" y="605">Event</text>
+  <rect class="rule" x="1050" y="640" width="80" height="40" rx="3" />
+  <text class="text text-black" x="1090" y="665">Rule</text>
+  <path class="actor" d="M 1050,710 L 1130,710 L 1130,745 L 1125,750 L 1050,750 Z" />
+  <path class="actor" d="M 1125,745 L 1125,750 L 1130,745 Z" fill="#F4D03F" stroke="#C5B800" stroke-width="1"/>
+  <text class="text text-black" x="1090" y="735">Actor</text>
+  <rect x="1050" y="770" width="80" height="40" rx="3" style="fill: #FFFBEA; stroke: #F4C542; stroke-width: 2; stroke-dasharray: 3,3;"/>
+  <text class="text text-black" x="1090" y="795">Aggregate</text>
+</svg>
+</body>
+</html>

@@ -279,3 +279,11 @@ Features/
 - [ ] Prompt Cowboy – szczegóły
 - [ ] GitHub Issue Template – utworzenie szablonu dla projektu
 - [ ] Spring Events – https://www.baeldung.com/spring-events
+
+agent do tworzenia opisu architektury:
+https://github.com/michal-michaluk/ai-craft-be-java/issues/8
+
+pisanie agenta, mozna zrobic na podstawie reverse eng tzn. opisujemy co jest na wejsciu 
+i co jest na wyjsciu i zeby na podstawie tego zrobil agenta:
+https://github.com/michal-michaluk/ai-craft-be-java/issues/9
+
