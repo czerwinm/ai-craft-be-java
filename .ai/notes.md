@@ -43,6 +43,15 @@
 - Praca z transkryptem: `transcript-installation-sat.txt`
 - Event Storming → podział na subdomeny (obrazki w issue)
 
+### Issue 8: Architecture Description Agent
+- Link: https://github.com/michal-michaluk/ai-craft-be-java/issues/8
+- Cel: Stworzenie agenta do generowania opisu architektury systemu.
+
+### Issue 9: Reverse Engineering Agent
+- Link: https://github.com/michal-michaluk/ai-craft-be-java/issues/9
+- Metoda: **Reverse Engineering**
+- Podejście: Opisujemy dokładnie co jest na wejściu (input) i co ma być na wyjściu (output), a AI na tej podstawie generuje prompt/agenta.
+
 ---
 
 ## Narzędzia AI
@@ -279,11 +288,4 @@ Features/
 - [ ] Prompt Cowboy – szczegóły
 - [ ] GitHub Issue Template – utworzenie szablonu dla projektu
 - [ ] Spring Events – https://www.baeldung.com/spring-events
-
-agent do tworzenia opisu architektury:
-https://github.com/michal-michaluk/ai-craft-be-java/issues/8
-
-pisanie agenta, mozna zrobic na podstawie reverse eng tzn. opisujemy co jest na wejsciu 
-i co jest na wyjsciu i zeby na podstawie tego zrobil agenta:
-https://github.com/michal-michaluk/ai-craft-be-java/issues/9
 
