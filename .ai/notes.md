@@ -112,7 +112,6 @@
 - **Modularny monolit** z **Vertical Slice Architecture**
 - Wewnątrz każdego slice: **Architektura heksagonalna** (porty i adaptery)
 - **1 hexagon per mikroserwis** jest OK, jeśli mikroserwis nie jest za duży
-- Może być też **modularny monolit na poziomie mikroserwisu**, i w każdym module (slice) osobny hexagon
 
 #### Strategia migracji z monolitu do mikroserwisów
 
@@ -125,7 +124,6 @@
 - Użyj wzorca **Bubble Context** – nowy kod w czystej architekturze heksagonalnej
 - Adaptery mogą uderzać do **legacy DB** (stopniowa migracja danych)
 - Każdy moduł ma własne porty i adaptery
-- Moduły komunikują się przez dobrze zdefiniowane interfejsy (porty)
 
 **Krok 2: Wydzielenie mikroserwisów**
 - Gdy moduł jest wystarczająco odizolowany → wydziel jako osobny mikroserwis
@@ -289,3 +287,12 @@ Features/
 - [ ] GitHub Issue Template – utworzenie szablonu dla projektu
 - [ ] Spring Events – https://www.baeldung.com/spring-events
 
+subagent - czysty context[3:54 PM]
+subagent - np. taki ktory czyta pliki[3:56 PM]
+subagent - watek z nowym context window
+
+## Hook do lintera
+Można skonfigurować pre-commit hook, aby uruchamiać linter (np. `./gradlew check`) przed zatwierdzeniem zmian, zapewniając, że kod spełnia wymagania jakościowe.
+
+## UI Components - shadcn
+Użycie biblioteki shadcn do budowania nowoczesnych, spójnych i responsywnych komponentów UI. Zalecane jest zapoznanie się z dokumentacją oraz przykładami na oficjalnej stronie shadcn.
