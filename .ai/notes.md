@@ -5,8 +5,8 @@
 ## Spis treści
 1. [Repozytoria](#repozytoria)
 2. [Zadania](#zadania)
-3. [Narzędzia AI](#narzędzia-ai)
-4. [Konfiguracja AI w projekcie](#konfiguracja-ai-w-projekcie)
+3. [Narzędzia i Technologie](#narzędzia-i-technologie)
+4. [Konfiguracja projektu i AI](#konfiguracja-projektu-i-ai)
 5. [Podejście do developmentu z AI](#podejście-do-developmentu-z-ai)
 6. [MCP (Model Context Protocol)](#mcp-model-context-protocol)
 7. [Skille i customowe agenty](#skille-i-customowe-agenty)
@@ -54,7 +54,7 @@
 
 ---
 
-## Narzędzia AI
+## Narzędzia i Technologie
 
 ### IDE z AI
 - **Cursor** – główne narzędzie
@@ -69,12 +69,15 @@
 - **Google Gemini Deep Research** – naprawdę dobra funkcja do głębokiego researchu
 - **Playwright** – automatyzacja przeglądarki (dostępne przez MCP)
 
+### UI & Frontend
+- **shadcn/ui** – biblioteka komponentów UI. Rekomendowana do budowania nowoczesnych, spójnych interfejsów (np. przy generowaniu UI przez AI).
+
 ### Skróty
 - `/` – używać do wywoływania komend
 
 ---
 
-## Konfiguracja AI w projekcie
+## Konfiguracja projektu i AI
 
 ### AGENTS.md (standard dla wszystkich IDE)
 - Główny plik konfiguracji dla agentów AI
@@ -86,6 +89,9 @@
 - Plik konfiguracyjny: `.github/copilot-instructions.md`
 - Można pisać własnych agentów (np. do generowania dokumentacji, review)
 - Możliwość utworzenia globalnego repo z agentami/promptami
+
+### Quality Assurance (QA)
+- **Pre-commit hooks** – konfiguracja hooków (np. git hooks), aby uruchamiać linter (np. `./gradlew check`) przed zatwierdzeniem zmian. Zapewnia to utrzymanie jakości kodu.
 
 ---
 
@@ -199,6 +205,10 @@
   - Code review
   - Tworzenie na podstawie input i output
 
+### Koncepcja Subagenta (Notes)
+- **Czysty kontekst** – subagent powinien startować w nowym wątku (nowe context window).
+- **Celowość** – służy do zadań wymagających izolacji kontekstu, np. czytanie dużej ilości plików, bez zaśmiecania głównego wątku rozmowy.
+
 ### Narzędzia wspomagające
 - **Manus** – (do zbadania)
 - **GitHub Issue Template** – do standaryzacji zadań
@@ -286,13 +296,3 @@ Features/
 - [ ] Prompt Cowboy – szczegóły
 - [ ] GitHub Issue Template – utworzenie szablonu dla projektu
 - [ ] Spring Events – https://www.baeldung.com/spring-events
-
-subagent - czysty context[3:54 PM]
-subagent - np. taki ktory czyta pliki[3:56 PM]
-subagent - watek z nowym context window
-
-## Hook do lintera
-Można skonfigurować pre-commit hook, aby uruchamiać linter (np. `./gradlew check`) przed zatwierdzeniem zmian, zapewniając, że kod spełnia wymagania jakościowe.
-
-## UI Components - shadcn
-Użycie biblioteki shadcn do budowania nowoczesnych, spójnych i responsywnych komponentów UI. Zalecane jest zapoznanie się z dokumentacją oraz przykładami na oficjalnej stronie shadcn.
